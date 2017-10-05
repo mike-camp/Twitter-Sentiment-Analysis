@@ -60,16 +60,22 @@ def clean_text(tweet):
     return tweet.strip()
 
 
-    def tokenize(tweet):
-        """ tokenizes a tweet
+def tokenize(tweet):
+    """ tokenizes a tweet preserving
+    emoticons
 
-        Parameters:
-        -----------
-        tweet: str
-            contents of a given tweet
+    Parameters:
+    -----------
+    tweet: str
+        contents of a given tweet
 
-        Returns:
-        --------
-        list of tokens
-        """
-        pass
+    Returns:
+    --------
+    list of tokens
+    """
+    tweet = clean_text(tweet)
+    tweet, emoticons = _remove_emoticons(tweet)
+    words = re.findall(r"(?u)\b\w[\w']+\b", tweet)
+    for i in emoticons:
+        words.append(i)
+    return words
