@@ -3,7 +3,11 @@ and analyzing sentiment.
 """
 import re
 from bs4 import BeautifulSoup
+import multiprocessing
 
+def parrallel_map(iterable, function):
+    pool = multiprocessing.pool.Pool()
+    return pool.map(iterable,function)
 
 def _HTMLEntitiesToUnicode(text):
     """Converts HTML entities to unicode.  For example '&amp;' becomes
