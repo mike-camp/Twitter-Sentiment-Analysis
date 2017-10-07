@@ -3,6 +3,7 @@ for classifying sentiment
 """
 import tensorflow as tf
 import numpy as np
+from src import utils
 
 class RNN(object):
     """A class for creating a character level
@@ -23,73 +24,22 @@ class RNN(object):
         self.lr = learning_rate
         self.l2=l2
 
-    def _encode_char(self, char):
-        """encodes a character as a 1 hot vector of
-        length 128.
+    def split(self,ls, sublist_length=5000):
+        """shuffles, then splits a list into several chunks of length
+        sublist_length
 
         Parameters:
         -----------
-        char: str
-            character to encode
+        ls: iterable to be split
 
         Returns:
         --------
-        nparray of length 128
+        iterable of sublists
         """
-        if char == '':
-            return np.zeros(self.embedding_dim)
-        temp_array = np.zeros(self.embedding_dim)
-        if ord(char) < self.embedding_dim:
-            temp_array[ord(char)] = 1
-        else:
-            temp_array[0] = 1
-        return temp_array
+        return [ls[i:i+sublist_length] for i in
+                range(0,len(ls),sublist_length)]
 
-    def _encode_tweet(self, tweet):
-        """Encodes a tweet as a series of character vectors
-        and pads the tweet if it is shorter than 140 characters
-
-        Parameters:
-        -----------
-        tweet: str
-            the tweet to be encoded
-
-        Returns:
-        --------
-        nparray of character vectors, shape = [140,128]
-        """
-        def get_char(i):
-            return tweet[i] if i<len(tweet) else ''
-        padded = np.vstack([self._encode_char(get_char(i)) for i in range(
-            self.max_sequence_length)])
-        return padded
-
-
-    def _encode_tweet_collection(self, tweets):
-        """takes a collection of tweets and converts them into
-        an array of shape [n_tweets,n_characters,n_encoding]
-
-        Parameters:
-        -----------
-        tweets: list(str)
-            list of tweets
-
-        Returns:
-        --------
-        encodings:
-            np array of shape [n_tweets,n_characters,n_encoding]
-        lengths:
-            array of tweet lengths, shape=[n_tweets]
-        """
-        encodings = np.stack([self._encode_tweet(tweet) for tweet in tweets])
-        lengths = [min(len(tweet),self.max_sequence_length) for tweet in tweets]
-        return encodings, np.array(lengths)
-
-    def split(self,indices):
-        for i in range
-
-
-    def partial_fit(self, tweets, labels):
+    def partial_fit(self, sess, tweets, labels):
         """partially fits a neural network to classify tweets
 
         Parameters:
@@ -99,62 +49,18 @@ class RNN(object):
         labels, list(int)
             list of tweet labels
         """
-        self._i = 0
-        tweets, lengths = self._encode_tweet_collection(tweets)
-        self._create_placeholders()
-
-        self._indices = np.arange(tweets.shape[0])
+        tweets, lengths = utils._encode_tweet_collection(tweets,
+                                                   self.max_sequence_length,
+                                                    self.embedding_dim)
         labels = np.array(labels)
-
-        logit_predictions = self._get_logit_predictions(self.x_input, self.length_input)
-        one_hot_labels = tf.one_hot(indices=self.label_input, depth=self.n_classes,
-                                    on_value=1,off_value=0,dtype=tf.int32)
-        self.cost, self.optimizer = self._optimize(logit_predictions, one_hot_labels)
-        self.predictions = tf.argmax(logit_predictions, 1)
-
-        with tf.name_scope('measurements'):
-            precision, precision_update =\
-                tf.contrib.metrics.streaming_precision(self.predictions, self.label_input)
-            recall, recall_update = \
-                tf.contrib.metrics.streaming_recall(self.predictions, self.label_input)
-            accuracy, accuracy_update = \
-                tf.contrib.metrics.streaming_accuracy(self.predictions, self.label_input)
-
-        # Store variables related to metrics in a list which allows all 
-        # measurement variables to be reset
-        stream_vars = [i for i in tf.local_variables() if
-                        i.name.split('/')[0] == 'measurements']
-        reset_measurements = [tf.variables_initializer(stream_vars)]
-
-        saver = tf.train.Saver()
-
-        with tf.Session() as sess:
-            print('running')
-            sess.run(tf.global_variables_initializer())
-            sess.run(tf.local_variables_initializer())
-
-            #for epoch in range(self.n_epochs):
-            for run in range(self.n_epochs*len(tweets)//self.batch_size):
-                batch_x, batch_length, batch_label = self._get_mini_batch(tweets,
-                                                                          lengths,
-                                                                          labels)
-                feed_dict = {self.x_input:batch_x,
+        for batch_x, batch_length, batch_label in self._get_mini_batches(
+                                                        tweets, lengths, labels):
+            feed_dict = {self.x_input:batch_x,
                              self.length_input:batch_length,
                              self.label_input:batch_label}
-                loss, *_ = sess.run((self.cost, self.optimizer,
-                                     precision_update, recall_update,
-                                     accuracy_update),
-                                     feed_dict=feed_dict)
-                if self._i == 1:
-                    a, p, r = sess.run((accuracy, precision, recall),
-                                       feed_dict=feed_dict)
-                    sess.run(reset_measurements)
-                    f1_score = 2*p*r/(p+r)
-                    print("Testing Loss={:.4f}, testing accuracy={:.4f}, f1={:.5f}"\
-                          .format(loss, a, f1_score))
-                saver.save(sess,"checkpoints/model.ckpt")
-
-abels = np.array(labels)
+            sess.run((self.optimizer, self.accuracy_update,
+                      self.precision_update,
+                     self.recall_update),feed_dict = feed_dict)
 
     def fit(self, tweets, labels):
         """Fits a neural network to classify tweets
@@ -166,11 +72,8 @@ abels = np.array(labels)
         labels, list(int)
             list of tweet labels
         """
-        self._i = 0
-        tweets, lengths = self._encode_tweet_collection(tweets)
         self._create_placeholders()
-
-        self._indices = np.arange(tweets.shape[0])
+        indices = np.arange(len(tweets))
         labels = np.array(labels)
 
         logit_predictions = self._get_logit_predictions(self.x_input, self.length_input)
@@ -180,11 +83,11 @@ abels = np.array(labels)
         self.predictions = tf.argmax(logit_predictions, 1)
 
         with tf.name_scope('measurements'):
-            precision, precision_update =\
+            precision, self.precision_update =\
                 tf.contrib.metrics.streaming_precision(self.predictions, self.label_input)
-            recall, recall_update = \
+            recall, self.recall_update = \
                 tf.contrib.metrics.streaming_recall(self.predictions, self.label_input)
-            accuracy, accuracy_update = \
+            accuracy, self.accuracy_update = \
                 tf.contrib.metrics.streaming_accuracy(self.predictions, self.label_input)
 
         # Store variables related to metrics in a list which allows all 
@@ -192,7 +95,6 @@ abels = np.array(labels)
         stream_vars = [i for i in tf.local_variables() if
                         i.name.split('/')[0] == 'measurements']
         reset_measurements = [tf.variables_initializer(stream_vars)]
-
         saver = tf.train.Saver()
 
         with tf.Session() as sess:
@@ -200,25 +102,14 @@ abels = np.array(labels)
             sess.run(tf.global_variables_initializer())
             sess.run(tf.local_variables_initializer())
 
-            #for epoch in range(self.n_epochs):
-            for run in range(self.n_epochs*len(tweets)//self.batch_size):
-                batch_x, batch_length, batch_label = self._get_mini_batch(tweets,
-                                                                          lengths,
-                                                                          labels)
-                feed_dict = {self.x_input:batch_x,
-                             self.length_input:batch_length,
-                             self.label_input:batch_label}
-                loss, *_ = sess.run((self.cost, self.optimizer,
-                                     precision_update, recall_update,
-                                     accuracy_update),
-                                     feed_dict=feed_dict)
-                if self._i == 1:
-                    a, p, r = sess.run((accuracy, precision, recall),
-                                       feed_dict=feed_dict)
-                    sess.run(reset_measurements)
-                    f1_score = 2*p*r/(p+r)
-                    print("Testing Loss={:.4f}, testing accuracy={:.4f}, f1={:.5f}"\
-                          .format(loss, a, f1_score))
+            for epoch in range(self.n_epochs):
+                for split in self.split(indices):
+                    self.partial_fit(sess,tweets[split],labels[split])
+                a, p, r = sess.run((accuracy, precision, recall))
+                sess.run(reset_measurements)
+                f1_score = 2*p*r/(p+r)
+                print("testing accuracy={:.4f}, f1={:.5f}"\
+                      .format(a, f1_score))
                 saver.save(sess,"checkpoints/model.ckpt")
 
 
@@ -235,7 +126,9 @@ abels = np.array(labels)
         --------
         Predicted sentiment of tweets
         """
-        tweets, lengths = self._encode_tweet_collection(tweets)
+        tweets, lengths = utils._encode_tweet_collection(tweets,
+                                                self.max_sequence_length,
+                                                self.embedding_dim)
         saver = tf.train.Saver()
         with tf.Session() as sess:
             saver.restore(sess,"checkpoints/model.ckpt")
@@ -249,7 +142,9 @@ abels = np.array(labels)
 
     def score(self, tweets, predictions):
 
-        tweets, lengths = self._encode_tweet_collection(tweets)
+        tweets, lengths = utils._encode_tweet_collection(tweets,
+                                                 self.max_sequence_length,
+                                                self.embedding_dim)
         labels = np.array(predictions)
         feed_dict = {self.x_input:tweets,
                      self.length_input:lengths,
@@ -268,21 +163,13 @@ abels = np.array(labels)
         self.length_input = tf.placeholder(tf.int32, shape=[None])
         self.label_input = tf.placeholder(tf.int32, shape=[None])
 
-    def _get_mini_batch(self, X, lengths, labels):
-        """Creates minibatches of the training data and labels
-        If the process has gone through the data, then the data is
-        shuffled and minibatches are returned from the shuffle
-
+    def _get_mini_batches(self, X, lengths, labels):
+        """Creates a list of minibatches of the training data and labels
         """
-        if self._i*self.batch_size > X.shape[0]:
-            self._indices = np.random.permutation(self._indices)
-            self._i = 0
-        indices = self._indices[self._i*self.batch_size:
-                                (self._i+1)*self.batch_size]
-        self._i += 1
-        return X[indices],\
-                lengths[indices],\
-                labels[indices]
+        return ((X[i:i+self.batch_size],
+                 lengths[i:i+self.batch_size],
+                 labels[i:i+self.batch_size])
+                for i in range(0, len(X), self.batch_size))
 
     def _get_logit_predictions(self, X, lengths, reuse_variables=False):
         """Returns the logits for each vectorized tweet in
