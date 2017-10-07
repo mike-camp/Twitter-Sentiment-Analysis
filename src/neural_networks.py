@@ -85,6 +85,77 @@ class RNN(object):
         lengths = [min(len(tweet),self.max_sequence_length) for tweet in tweets]
         return encodings, np.array(lengths)
 
+    def split(self,indices):
+        for i in range
+
+
+    def partial_fit(self, tweets, labels):
+        """partially fits a neural network to classify tweets
+
+        Parameters:
+        ----------
+        tweets, list(str)
+            list of tweets to classify
+        labels, list(int)
+            list of tweet labels
+        """
+        self._i = 0
+        tweets, lengths = self._encode_tweet_collection(tweets)
+        self._create_placeholders()
+
+        self._indices = np.arange(tweets.shape[0])
+        labels = np.array(labels)
+
+        logit_predictions = self._get_logit_predictions(self.x_input, self.length_input)
+        one_hot_labels = tf.one_hot(indices=self.label_input, depth=self.n_classes,
+                                    on_value=1,off_value=0,dtype=tf.int32)
+        self.cost, self.optimizer = self._optimize(logit_predictions, one_hot_labels)
+        self.predictions = tf.argmax(logit_predictions, 1)
+
+        with tf.name_scope('measurements'):
+            precision, precision_update =\
+                tf.contrib.metrics.streaming_precision(self.predictions, self.label_input)
+            recall, recall_update = \
+                tf.contrib.metrics.streaming_recall(self.predictions, self.label_input)
+            accuracy, accuracy_update = \
+                tf.contrib.metrics.streaming_accuracy(self.predictions, self.label_input)
+
+        # Store variables related to metrics in a list which allows all 
+        # measurement variables to be reset
+        stream_vars = [i for i in tf.local_variables() if
+                        i.name.split('/')[0] == 'measurements']
+        reset_measurements = [tf.variables_initializer(stream_vars)]
+
+        saver = tf.train.Saver()
+
+        with tf.Session() as sess:
+            print('running')
+            sess.run(tf.global_variables_initializer())
+            sess.run(tf.local_variables_initializer())
+
+            #for epoch in range(self.n_epochs):
+            for run in range(self.n_epochs*len(tweets)//self.batch_size):
+                batch_x, batch_length, batch_label = self._get_mini_batch(tweets,
+                                                                          lengths,
+                                                                          labels)
+                feed_dict = {self.x_input:batch_x,
+                             self.length_input:batch_length,
+                             self.label_input:batch_label}
+                loss, *_ = sess.run((self.cost, self.optimizer,
+                                     precision_update, recall_update,
+                                     accuracy_update),
+                                     feed_dict=feed_dict)
+                if self._i == 1:
+                    a, p, r = sess.run((accuracy, precision, recall),
+                                       feed_dict=feed_dict)
+                    sess.run(reset_measurements)
+                    f1_score = 2*p*r/(p+r)
+                    print("Testing Loss={:.4f}, testing accuracy={:.4f}, f1={:.5f}"\
+                          .format(loss, a, f1_score))
+                saver.save(sess,"checkpoints/model.ckpt")
+
+abels = np.array(labels)
+
     def fit(self, tweets, labels):
         """Fits a neural network to classify tweets
 
@@ -97,32 +168,33 @@ class RNN(object):
         """
         self._i = 0
         tweets, lengths = self._encode_tweet_collection(tweets)
-        x_input,length_input,label_input = self._get_placeholders()
-        print(len(tweets),len(lengths),len(labels))
+        self._create_placeholders()
 
         self._indices = np.arange(tweets.shape[0])
         labels = np.array(labels)
 
-        logit_predictions = self._get_predictions(x_input, length_input)
-        one_hot_labels = tf.one_hot(indices=label_input,depth=self.n_classes,
+        logit_predictions = self._get_logit_predictions(self.x_input, self.length_input)
+        one_hot_labels = tf.one_hot(indices=self.label_input, depth=self.n_classes,
                                     on_value=1,off_value=0,dtype=tf.int32)
-        cost, optimizer = self._optimize(logit_predictions, one_hot_labels)
-        predictions = tf.argmax(logit_predictions, 1)
+        self.cost, self.optimizer = self._optimize(logit_predictions, one_hot_labels)
+        self.predictions = tf.argmax(logit_predictions, 1)
 
         with tf.name_scope('measurements'):
             precision, precision_update =\
-                tf.contrib.metrics.streaming_precision(predictions,label_input)
+                tf.contrib.metrics.streaming_precision(self.predictions, self.label_input)
             recall, recall_update = \
-                tf.contrib.metrics.streaming_recall(predictions,label_input)
+                tf.contrib.metrics.streaming_recall(self.predictions, self.label_input)
             accuracy, accuracy_update = \
-                tf.contrib.metrics.streaming_accuracy(predictions, label_input)
- 
+                tf.contrib.metrics.streaming_accuracy(self.predictions, self.label_input)
+
         # Store variables related to metrics in a list which allows all 
         # measurement variables to be reset
         stream_vars = [i for i in tf.local_variables() if
                         i.name.split('/')[0] == 'measurements']
         reset_measurements = [tf.variables_initializer(stream_vars)]
- 
+
+        saver = tf.train.Saver()
+
         with tf.Session() as sess:
             print('running')
             sess.run(tf.global_variables_initializer())
@@ -130,24 +202,27 @@ class RNN(object):
 
             #for epoch in range(self.n_epochs):
             for run in range(self.n_epochs*len(tweets)//self.batch_size):
-                batch_x,batch_length,batch_label = self._get_mini_batch(tweets,
-                                                                    lengths,
-                                                                    labels)
-                feed_dict = {x_input:batch_x, length_input:batch_length,
-                             label_input:batch_label}
-                loss,*_ = sess.run((cost, optimizer, precision_update,
-                                    recall_update, accuracy_update),
-                                   feed_dict=feed_dict)
-                if self._i==1:
-                    a, p, r = sess.run((accuracy, precision,recall),
-                                   feed_dict=feed_dict)
+                batch_x, batch_length, batch_label = self._get_mini_batch(tweets,
+                                                                          lengths,
+                                                                          labels)
+                feed_dict = {self.x_input:batch_x,
+                             self.length_input:batch_length,
+                             self.label_input:batch_label}
+                loss, *_ = sess.run((self.cost, self.optimizer,
+                                     precision_update, recall_update,
+                                     accuracy_update),
+                                     feed_dict=feed_dict)
+                if self._i == 1:
+                    a, p, r = sess.run((accuracy, precision, recall),
+                                       feed_dict=feed_dict)
                     sess.run(reset_measurements)
                     f1_score = 2*p*r/(p+r)
                     print("Testing Loss={:.4f}, testing accuracy={:.4f}, f1={:.5f}"\
                           .format(loss, a, f1_score))
+                saver.save(sess,"checkpoints/model.ckpt")
 
 
-    def predict(tweets):
+    def predict(self,tweets):
         """Takes a collections of tweets, processes them, and then
         finds the predictions.
 
@@ -160,19 +235,38 @@ class RNN(object):
         --------
         Predicted sentiment of tweets
         """
-        pass
-    
-    def score(tweets,predictions):
-        pass
+        tweets, lengths = self._encode_tweet_collection(tweets)
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            saver.restore(sess,"checkpoints/model.ckpt")
+
+            feed_dict = {self.x_input:tweets,
+                         self.length_input:lengths}
+            predictions = sess.run(self.predictions, feed_dict=feed_dict)
+            return predictions
 
 
-    def _get_placeholders(self):
-        x = tf.placeholder(tf.float32, shape=[None,
-                                                self.max_sequence_length,
-                                                self.embedding_dim])
-        l = tf.placeholder(tf.int32, shape=[None])
-        y = tf.placeholder(tf.int32, shape=[None])
-        return x, l, y
+
+    def score(self, tweets, predictions):
+
+        tweets, lengths = self._encode_tweet_collection(tweets)
+        labels = np.array(predictions)
+        feed_dict = {self.x_input:tweets,
+                     self.length_input:lengths,
+                     self.label_input:labels}
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            saver.restore(sess,"checkpoints/model.ckpt")
+            cost = sess.run(self.cost,feed_dict=feed_dict)
+        return cost
+
+    def _create_placeholders(self):
+        self.x_input = tf.placeholder(tf.float32,
+                                      shape=[None,
+                                             self.max_sequence_length,
+                                             self.embedding_dim])
+        self.length_input = tf.placeholder(tf.int32, shape=[None])
+        self.label_input = tf.placeholder(tf.int32, shape=[None])
 
     def _get_mini_batch(self, X, lengths, labels):
         """Creates minibatches of the training data and labels
@@ -190,7 +284,7 @@ class RNN(object):
                 lengths[indices],\
                 labels[indices]
 
-    def _get_predictions(self, X, lengths, reuse_variables=False):
+    def _get_logit_predictions(self, X, lengths, reuse_variables=False):
         """Returns the logits for each vectorized tweet in
         an array.
 
@@ -206,7 +300,7 @@ class RNN(object):
         logits : shape=[n_samples,n_classes]
             logits corresponding to different class predictions for
         """
-        with tf.variable_scope('RNN',reuse=reuse_variables):
+        with tf.variable_scope('RNN', reuse=reuse_variables):
             if self.cell_type == 'rnn':
                 cell = tf.contrib.rnn.BasicRNNCell(self.n_hidden,
                                                    reuse=reuse_variables)
@@ -224,17 +318,17 @@ class RNN(object):
                                                 dtype=tf.float32)
             W = tf.get_variable('W', shape=[self.n_hidden, self.n_classes])
             biases = tf.get_variable('b', shape=[self.n_classes])
-        #outputs ahs shape 100,140,100
+        #outputs has shape 100,140,100
         output_list = tf.unstack(outputs, self.max_sequence_length, 1)
         #output_list has shape 140,100,100
         batch_range = tf.range(tf.shape(outputs)[0])
-        indices = tf.stack([batch_range,lengths-1],axis=1)
+        indices = tf.stack([batch_range, lengths-1], axis=1)
         # tf.stack([...],axis=1) has shape 100,2
         # last_rnn_output = tf.gather_nd(outputs, tf.stack(
         #     [tf.range(batch_size), lengths-1], axis=1))
         ### THE ERROR IS ON THE NEXT LINE< TF.GATHER_ND CHANGED
         ### FROM TENSORFLOW 1.1 to TENSORFLOW 1.3
-        last_rnn_output = tf.gather_nd(outputs,indices)
+        last_rnn_output = tf.gather_nd(outputs, indices)
 
         return tf.matmul(last_rnn_output, W)+biases
 
@@ -274,11 +368,9 @@ class RNN(object):
         """
 
         cost = self._get_cost(pred, labels)
+        regulated_cost = cost
         with tf.variable_scope('RNN', reuse=True):
-            cost += self.l2*tf.nn.l2_loss(tf.get_variable('W'))
-        optimizer = tf.train.AdamOptimizer(learning_rate = self.lr)\
-                .minimize(cost)
+            regulated_cost += self.l2*tf.nn.l2_loss(tf.get_variable('W'))
+        optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)\
+                .minimize(regulated_cost)
         return cost, optimizer
-
-
-
