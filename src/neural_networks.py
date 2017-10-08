@@ -24,7 +24,7 @@ class RNN(object):
         self.lr = learning_rate
         self.l2=l2
 
-    def split(self,ls, sublist_length=5000):
+    def split(self,ls, sublist_length=10000):
         """shuffles, then splits a list into several chunks of length
         sublist_length
 

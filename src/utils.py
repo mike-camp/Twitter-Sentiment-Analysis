@@ -8,7 +8,10 @@ import multiprocessing
 
 def parrallel_map(iterable, function):
     pool = multiprocessing.pool.Pool()
-    return pool.map(iterable,function)
+    results = pool.map(iterable, function)
+    pool.close()
+    pool.join()
+    return results
 
 def _HTMLEntitiesToUnicode(text):
     """Converts HTML entities to unicode.  For example '&amp;' becomes
