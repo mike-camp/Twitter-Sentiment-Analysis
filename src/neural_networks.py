@@ -24,7 +24,7 @@ class RNN(object):
         self.lr = learning_rate
         self.l2=l2
 
-    def split(self,ls, sublist_length=10000):
+    def split(self,ls, sublist_length=2000):
         """shuffles, then splits a list into several chunks of length
         sublist_length
 
@@ -166,10 +166,10 @@ class RNN(object):
     def _get_mini_batches(self, X, lengths, labels):
         """Creates a list of minibatches of the training data and labels
         """
-        return ((X[i:i+self.batch_size],
+        return [(X[i:i+self.batch_size],
                  lengths[i:i+self.batch_size],
                  labels[i:i+self.batch_size])
-                for i in range(0, len(X), self.batch_size))
+                for i in range(0, len(X), self.batch_size)]
 
     def _get_logit_predictions(self, X, lengths, reuse_variables=False):
         """Returns the logits for each vectorized tweet in

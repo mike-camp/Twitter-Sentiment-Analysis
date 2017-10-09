@@ -6,12 +6,9 @@ import numpy as np
 from bs4 import BeautifulSoup
 import multiprocessing
 
-def parrallel_map(iterable, function):
+def parrallel_map(function, iterable, n_jobs=8):
     pool = multiprocessing.pool.Pool()
-    results = pool.map(iterable, function)
-    pool.close()
-    pool.join()
-    return results
+    return pool.map(function,iterable)
 
 def _HTMLEntitiesToUnicode(text):
     """Converts HTML entities to unicode.  For example '&amp;' becomes
@@ -148,7 +145,7 @@ def _encode_tweet_collection(tweets,max_sequence_length, embedding_dim):
         array of tweet lengths, shape=[n_tweets]
     """
     #encodings = np.stack([self._encode_tweet(tweet) for tweet in tweets])
-    encodings = parrallel_map(_encode_tweet,tweets)
+    encodings = parrallel_map(_encode_tweet,tweets,n_jobs=3)
 
     lengths = [min(len(tweet),max_sequence_length) for tweet in tweets]
     return encodings, np.array(lengths)
