@@ -7,8 +7,11 @@ from bs4 import BeautifulSoup
 import multiprocessing
 
 def parrallel_map(function, iterable, n_jobs=8):
-    pool = multiprocessing.pool.Pool()
-    return pool.map(function,iterable)
+    pool = multiprocessing.pool.Pool(n_jobs)
+    result = poolmap(function,iterable)
+    pool.close()
+    pool.join()
+    return result
 
 def _HTMLEntitiesToUnicode(text):
     """Converts HTML entities to unicode.  For example '&amp;' becomes
@@ -150,3 +153,16 @@ def _encode_tweet_collection(tweets,max_sequence_length, embedding_dim):
     lengths = [min(len(tweet),max_sequence_length) for tweet in tweets]
     return encodings, np.array(lengths)
 
+    def tokenize(tweet):
+        """ tokenizes a tweet
+
+        Parameters:
+        -----------
+        tweet: str
+            contents of a given tweet
+
+        Returns:
+        --------
+        list of tokens
+        """
+        pass
