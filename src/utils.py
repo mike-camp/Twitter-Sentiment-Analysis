@@ -8,7 +8,7 @@ import multiprocessing
 
 def parrallel_map(function, iterable, n_jobs=8):
     pool = multiprocessing.pool.Pool(n_jobs)
-    result = poolmap(function,iterable)
+    result = pool.map(function, iterable)
     pool.close()
     pool.join()
     return result
@@ -148,21 +148,8 @@ def _encode_tweet_collection(tweets,max_sequence_length, embedding_dim):
         array of tweet lengths, shape=[n_tweets]
     """
     #encodings = np.stack([self._encode_tweet(tweet) for tweet in tweets])
-    encodings = parrallel_map(_encode_tweet,tweets,n_jobs=3)
+    encodings = parrallel_map(_encode_tweet, tweets, n_jobs=3)
 
-    lengths = [min(len(tweet),max_sequence_length) for tweet in tweets]
+    lengths = [min(len(tweet), max_sequence_length) for tweet in tweets]
     return encodings, np.array(lengths)
 
-    def tokenize(tweet):
-        """ tokenizes a tweet
-
-        Parameters:
-        -----------
-        tweet: str
-            contents of a given tweet
-
-        Returns:
-        --------
-        list of tokens
-        """
-        pass
