@@ -24,6 +24,7 @@ class TweetPredictor(object):
                 '../data/training.1600000.processed.noemoticon.csv',
                 encoding='iso8859', header=None,
                 names=['sentiment', 'id', 'time', 'query', 'user', 'text'])
+            df['sentiment'] = df.sentiment/4
         elif source == 'kaggle':
             df = pd.read_csv('../data/kaggle_labeled_tweets.csv',
                              delimiter='\t', header=None,
