@@ -85,7 +85,7 @@ def tokenize(tweet):
     """
     tweet = clean_text(tweet)
     tweet, emoticons = _remove_emoticons(tweet)
-    words = re.findall(r"(?u)\b\w[\w']+\b", tweet)
+    words = re.findall(r"(?u)\b\w[\w']+\b", tweet.lower())
     for i in emoticons:
         words.append(i)
     return words
