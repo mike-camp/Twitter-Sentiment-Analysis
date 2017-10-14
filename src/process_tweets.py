@@ -63,9 +63,10 @@ class TweetProcessor(object):
         --------
         sentiment, float between 0 and 1
         """
-        tweet_text = tweet['extended_tweet']['full_text']
-        sentiment = self._model.predict_proba(tweet_text)
-        return sentiment
+        tweet_text = tweet['text']
+        sentiment = self._model.predict_proba([tweet_text])
+        print(sentiment)
+        return sentiment[0][1]
 
     @staticmethod
     def find_date(tweet):
