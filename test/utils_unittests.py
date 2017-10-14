@@ -2,7 +2,6 @@
 To run the tests: go to the root directory, Kaggle-Cancer-Dataset
 run `make test`
 '''
-from __future__ import division
 import unittest as unittest
 from src import utils
 
