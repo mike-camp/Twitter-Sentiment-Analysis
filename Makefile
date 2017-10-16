@@ -9,3 +9,4 @@ test-syntax:
 	py.test --pep8 src/process_tweets.py
 	py.test --pep8 src/model.py
 	py.test --pep8 src/twitter_scraper.py
+	py.test --pep8 src/visualization.py

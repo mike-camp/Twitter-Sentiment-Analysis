@@ -37,6 +37,11 @@ class TweetProcessor(object):
     def load_model(self, save_location):
         """Loads a picked model from memory and stores it
         as the self._model attribute
+
+        Parameters:
+        -----------
+        save_location: str
+            file location
         """
         with open(save_location, 'rb') as f:
             self._model = pickle.load(f)
@@ -44,6 +49,10 @@ class TweetProcessor(object):
     def find_state(self, tweet):
         """given a tweet finds the state it corresponds to
         and then returns tweet with state added in as a column
+
+        Parameters:
+        -----------
+        tweet: json-like dictionary
         """
         location = tweet['user']['location']
         for state in self.full_names:
@@ -66,7 +75,8 @@ class TweetProcessor(object):
         --------
         sentiment, float between 0 and 1
         """
-        if "extended_tweets" in tweet and 'full_text' in tweet['extended_tweet']:
+        if ("extended_tweets" in tweet) and ('full_text'
+                                             in tweet['extended_tweet']):
             tweet_text = tweet['extended_tweet']['full_text']
         else:
             tweet_text = tweet['text']
@@ -105,7 +115,8 @@ class TweetProcessor(object):
         bool, True or False depending on whether or not the tweet contains
             the topic
         """
-        if 'extended_tweet' in tweet and 'hashtags' in tweet['extended_tweet']:
+        if ('extended_tweet' in tweet) and ('hashtags' in
+                                            tweet['extended_tweet']):
             hashtags = [hashtag['text'].lower() for hashtag in
                         tweet['extended_tweet']['hashtags']]
         else:
@@ -121,6 +132,10 @@ class TweetProcessor(object):
     def process_predict(self, tweet):
         """Given a tweet, extracts the state, datetime, and sentiment and
         returns these in a tuple
+
+        Parameters:
+        -----------
+        tweet: json-like dict
         """
         date = self.find_date(tweet)
         sentiment = self.find_sentiment(tweet)
@@ -131,15 +146,21 @@ class TweetProcessor(object):
         """Given a Pymongo connection to a mongodb collection,
         processes the tweets into a dataframe, and then returns the
         dataframe object
+
+        Parameters:
+        -----------
+        collection:
+            pymongo connection to mongodb table
+        n_time_bins: int, default 6
+            number of time bins to split data into
         """
-        tweets = collection.find({'user.location':{'$ne':None}})
+        tweets = collection.find({'user.location': {'$ne': None}})
         dataframe = pd.DataFrame([self.process_predict(tweet)
                                   for tweet in tweets],
-                                  columns=['state', 'date', 'sentiment'])
+                                 columns=['state', 'date', 'sentiment'])
         min_time = dataframe['date'].min()
         max_time = dataframe['date'].max()
         time_bin = (max_time - min_time).seconds
-        dataframe['time_bin'] = dataframe['date']\
-                .map(lambda date: int((date - min_time).seconds/time_bin))
+        dataframe['time_bin'] = dataframe['date'].map(
+            lambda date: int((date - min_time).seconds/time_bin))
         return dataframe
-

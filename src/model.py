@@ -13,13 +13,40 @@ from sklearn.utils import shuffle
 class TweetPredictor(object):
     """A model for predicting tweet sentiment utilizing tfidf,
     and either logistic regression of another default predictor
+
+    Attributes:
+    -----------
+    predictor: sklearn estimator
+        model to use for predicting probabilities after TFIDF
+    pipeline: sklearn pipeline
+        pipeline to transform words to probability predictions
+    _grid_search: sklearn GridSearchCV
+        grid search to find best parameters
+    _best_estimator:
+        best estimator found by grid_search
     """
     def __init__(self, predictor=LogisticRegression()):
+        self.predictor = predictor
         tfidf = TfidfVectorizer(stop_words='english',
                                 tokenizer=utils.tokenize)
         self.pipeline = Pipeline([('tfidf', tfidf), ('predictor', predictor)])
 
     def load_data(self, source='kaggle'):
+        """Loads the data in, processes it into a standard form
+        with sentiment labeled as 0 or 1
+
+        Parameters:
+        -----------
+        source: str, 'kaggle' or 'emoticon'
+            data source to use for training
+
+        Returns:
+        --------
+        tweets: list(str)
+            list of text of tweets
+        labels: list(int)
+            list of sentiment labels (0=negative, 1=positive)
+        """
         if source == 'emoticon':
             df = pd.read_csv(
                 'data/training.1600000.processed.noemoticon.csv',
@@ -40,6 +67,16 @@ class TweetPredictor(object):
         return shuffle(tweets, labels)
 
     def train(self, verbose=False, source='kaggle'):
+        """uses the loaded data to run a grid search for the best
+        parameters, and then stores the best estimator as an
+        instance variable.
+
+        Parameters:
+        ----------
+        verbose: bool
+        source: str, options = ['kaggle','emoticon']
+            source of tweets and labels to use
+        """
         params = {'tfidf__min_df': [.01, .05, .1],
                   'tfidf__max_df': [1., .9, .8, .7],
                   'predictor__C': [2**n for n in range(-3, 3)]}
@@ -64,6 +101,20 @@ class TweetPredictor(object):
         self._estimator = grid_search.best_estimator_
 
     def predict_proba(self, tweets):
+        """Given a collection of tweets, predicts the probability
+        of a positive sentiment for all tweets
+
+        Parameters:
+        -----------
+        tweets: list(str)
+            list of tweets to predict sentiment for
+
+        Returns:
+        --------
+        sentiments: array, shape = [n_tweets,2]
+            predicted probabilities for positive and negative sentiments
+        """
+
         if self._estimator is None:
             raise Exception('model must be trained before prediction')
         return self._estimator.predict_proba(tweets)
