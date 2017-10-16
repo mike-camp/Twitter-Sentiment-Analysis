@@ -63,12 +63,11 @@ class TweetProcessor(object):
         --------
         sentiment, float between 0 and 1
         """
-        if "extended_tweets" in tweet and full_text in tweet['extended_tweet']:
+        if "extended_tweets" in tweet and 'full_text' in tweet['extended_tweet']:
             tweet_text = tweet['extended_tweet']['full_text']
         else:
             tweet_text = tweet['text']
         sentiment = self._model.predict_proba([tweet_text])
-        print(sentiment)
         return sentiment[0][1]
 
     @staticmethod
@@ -124,3 +123,20 @@ class TweetProcessor(object):
         sentiment = self.find_sentiment(tweet)
         state = self.find_state(tweet)
         return state, date, sentiment
+
+    def process_database(self, collection, n_time_bins=6):
+        """Given a Pymongo connection to a mongodb collection,
+        processes the tweets into a dataframe, and then returns the
+        dataframe object
+        """
+        tweets = collection.find({'user.location':{'$ne':None}})
+        dataframe = pd.DataFrame([self.process_predict(tweet)
+                                  for tweet in tweets],
+                                  columns=['state', 'date', 'sentiment'])
+        min_time = dataframe['date'].min()
+        max_time = dataframe['date'].max()
+        time_bin = (max_time - min_time).seconds
+        dataframe['time_bin'] = dataframe['date']\
+                .map(lambda date: int((date - min_time).seconds/time_bin))
+        return dataframe
+

@@ -1,7 +1,12 @@
 import pickle
+import pandas as pd
 import unittest as unittest
 from src.process_tweets import TweetProcessor
+from src import process_tweets
+from src import twitter_scraper
 from src.model import TweetPredictor
+from pymongo import MongoClient
+from src.apikeys import MONGO
 
 
 class TestTweetPreprocesor(unittest.TestCase):
@@ -53,4 +58,17 @@ class TestTweetPreprocesor(unittest.TestCase):
             prediction = tweet_processor.find_sentiment(tweet)
             self.assertGreaterEqual(prediction, 0.)
             self.assertLessEqual(prediction, 1.)
+
+    def test_process_database(self):
+        with open('models/tfidf_logistic_reg.pk', 'rb') as f:
+            model = pickle.load(f)
+        tweet_processor = TweetProcessor(model, 'data')
+        client = MongoClient('mongodb://{}:{}@localhost:27017'.format(
+            MONGO.USER, MONGO.PASSWORD))
+        database = client['twitter_database']
+        table = database['test_method']
+        dataframe = tweet_processor.process_database(table)
+        self.assertIsInstance(dataframe, pd.DataFrame)
+        self.assertEqual(['state','date','sentiment','time_bin'],
+                         list(dataframe.columns))
 
