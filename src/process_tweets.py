@@ -24,7 +24,10 @@ class TweetProcessor(object):
     """
 
     def __init__(self, model, data_dir='../data'):
-        self._model = model
+        if isinstance(model, str):
+            self.load_model(model)
+        else:
+            self._model = model
         states = pd.read_csv(os.path.join(data_dir, 'states.csv'))
         self.full_names = set(states.State)
         self.abbreviations = set(states.Abbreviation)
