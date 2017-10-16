@@ -29,6 +29,15 @@ class TestTweetPreprocesor(unittest.TestCase):
         self.assertEqual(predicted_datetime.hour, 20)
         self.assertEqual(predicted_datetime.minute, 23)
 
+    def test_filter_topic(self):
+        tweet_processor = TweetProcessor(None, 'data')
+        with open('test/data/pickled_tweets.pk', 'rb') as f:
+            tweets = pickle.load(f)
+        results = [tweet_processor.filter_topic(tweet, ['raiders']) for
+                   tweet in tweets]
+        expected_results = [True, False, False, False, True]
+        self.assertEqual(results, expected_results)
+
     def test_find_sentiment(self):
         # model = TweetPredictor()
         # model.train()

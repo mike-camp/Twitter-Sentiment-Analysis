@@ -63,7 +63,10 @@ class TweetProcessor(object):
         --------
         sentiment, float between 0 and 1
         """
-        tweet_text = tweet['text']
+        if "extended_tweets" in tweet and full_text in tweet['extended_tweet']:
+            tweet_text = tweet['extended_tweet']['full_text']
+        else:
+            tweet_text = tweet['text']
         sentiment = self._model.predict_proba([tweet_text])
         print(sentiment)
         return sentiment[0][1]
@@ -81,6 +84,37 @@ class TweetProcessor(object):
         datetime object corresponding to when tweet was created
         """
         return dateutil.parser.parse(tweet['created_at'])
+
+    @staticmethod
+    def filter_topic(tweet, topics):
+        """Filter function for a tweet and list of topics, Returns True
+        if the tweet contains a mention or hashtag of the topic, False
+        if the tweet does not contain the topics
+
+        Parameters:
+        -----------
+        tweet: json-like dict
+            tweet to analyze
+        topics: str or list(str)
+            topic of list of topics to filter on
+
+        Returns:
+        --------
+        bool, True or False depending on whether or not the tweet contains
+            the topic
+        """
+        if 'extended_tweet' in tweet and 'hashtags' in tweet['extended_tweet']:
+            hashtags = [hashtag['text'].lower() for hashtag in
+                        tweet['extended_tweet']['hashtags']]
+        else:
+            hashtags = [hashtag['text'].lower() for hashtag in
+                        tweet['entities']['hashtags']]
+        for topic in topics:
+            if topic.lower() in tweet['text'].lower():
+                return True
+            if topic.lower() in hashtags:
+                return True
+        return False
 
     def process_predict(self, tweet):
         """Given a tweet, extracts the state, datetime, and sentiment and
