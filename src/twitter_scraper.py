@@ -52,12 +52,16 @@ def stream_trends(trend_list=None):
     -----------
     trend_list: list of trends
     """
+    now = datetime.datetime.now()
     if trend_list is None:
         trend_list = get_trends()
+        with open('data/trends.txt','a') as f:
+            f.write('{}_{}_{}_{}_\n{}'.format(now.year, now.month,
+                                              now.day, now.hour,
+                                              trend_list)
     trend_names = [trend['name'] for trend in trend_list]
     client = MongoClient('mongodb://{}:{}@localhost:27017'.format(
         MONGO.USER, MONGO.PASSWORD))
-    now = datetime.datetime.now()
     table_name = 'trends_{}_{}_{}_{}'.format(now.year, now.month,
                                              now.day, now.hour)
     database = client['twitter_database']

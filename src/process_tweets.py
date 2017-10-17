@@ -5,7 +5,9 @@ import re
 import pickle
 import os
 import pandas as pd
+import datetime
 import dateutil
+import pytz
 
 
 class TweetProcessor(object):
@@ -95,7 +97,9 @@ class TweetProcessor(object):
         --------
         datetime object corresponding to when tweet was created
         """
-        return dateutil.parser.parse(tweet['created_at'])
+        # return dateutil.parser.parse(tweet['created_at'])
+        time = pd.Timestamp(tweet['created_at'])
+        return time
 
     @staticmethod
     def filter_topic(tweet, topics):
