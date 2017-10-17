@@ -119,6 +119,8 @@ class TweetProcessor(object):
         bool, True or False depending on whether or not the tweet contains
             the topic
         """
+        if topics is None:
+            return True
         if ('extended_tweet' in tweet) and ('hashtags' in
                                             tweet['extended_tweet']):
             hashtags = [hashtag['text'].lower() for hashtag in
