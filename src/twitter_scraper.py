@@ -58,7 +58,7 @@ def stream_trends(trend_list=None):
         with open('data/trends.txt','a') as f:
             f.write('{}_{}_{}_{}_\n{}'.format(now.year, now.month,
                                               now.day, now.hour,
-                                              trend_list)
+                                              trend_list))
     trend_names = [trend['name'] for trend in trend_list]
     client = MongoClient('mongodb://{}:{}@localhost:27017'.format(
         MONGO.USER, MONGO.PASSWORD))
