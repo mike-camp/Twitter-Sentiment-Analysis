@@ -159,7 +159,10 @@ class TweetProcessor(object):
         n_time_bins: int, default 6
             number of time bins to split data into
         """
-        tweets = collection.find({'user.location': {'$ne': None}}).limit(limit)
+        if limit is None:
+            tweets = collection.find({'user.location': {'$ne': None}})
+        else:
+            tweets = collection.find({'user.location': {'$ne': None}}).limit(limit)
         dataframe = pd.DataFrame([self.process_predict(tweet)
                                   for tweet in tweets if
                                   self.filter_topic(tweet, topics)],
