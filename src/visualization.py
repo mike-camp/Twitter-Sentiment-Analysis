@@ -48,6 +48,7 @@ def visualize_count(df):
     df_grouped = df[['sentiment', 'state']].groupby(['state']).count()
     gdf = gpd.read_file('../data/state_geojson.json')
     merged_df = gdf.merge(df_grouped, left_on='name', right_index=True)
+    merged_df = merged_df.fillna(0)
     data_df = merged_df.iloc[:, [0, 3]]
     geo_str = gpd.GeoDataFrame(merged_df.iloc[:, [0, 2]]).to_json()
     map1 = folium.Map(location=[+35, -100],
