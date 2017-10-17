@@ -142,7 +142,7 @@ class TweetProcessor(object):
         state = self.find_state(tweet)
         return state, date, sentiment
 
-    def process_database(self, collection, n_time_bins=6):
+    def process_database(self, collection, topics=None, limit=None, n_time_bins=6):
         """Given a Pymongo connection to a mongodb collection,
         processes the tweets into a dataframe, and then returns the
         dataframe object
@@ -151,12 +151,18 @@ class TweetProcessor(object):
         -----------
         collection:
             pymongo connection to mongodb table
+        topics: list(str)
+            list of topics to filter on, if None, there is no filter
+        limit: int
+            maximum number of tweets to process, if None, all tweets are
+            returned
         n_time_bins: int, default 6
             number of time bins to split data into
         """
-        tweets = collection.find({'user.location': {'$ne': None}})
+        tweets = collection.find({'user.location': {'$ne': None}}).limit(limit)
         dataframe = pd.DataFrame([self.process_predict(tweet)
-                                  for tweet in tweets],
+                                  for tweet in tweets if
+                                  self.filter_topic(tweet, topics)],
                                  columns=['state', 'date', 'sentiment'])
         min_time = dataframe['date'].min()
         max_time = dataframe['date'].max()
