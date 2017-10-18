@@ -100,29 +100,34 @@ def generate_table_name():
     return table_name
 
 
-def stream_trends(trend_list=None, n_hours=2):
+def stream_trends(trend_list=None, n_trends=None, n_hours=2):
     """querys the list of trends and inserts them into the twitter database
     in a table with the name 'trends_<year>_<month>_<day>_<day>'
 
     Parameters:
     -----------
     trend_list: list of trends
+    n_trends: number of trends to stream.
+        If n_trends!=None, first n_trends of trend_list are chosen
     time: number of hours to scrape trends for before exiting
 
     Returns:
     --------
+    table: connection to mongodb table
     table_name: name of table in mongodb database,
     trend_names: list of names of trends
     """
     if trend_list is None:
         trend_list = get_trends()
     trend_names = [trend['name'] for trend in trend_list]
+    if n_trends:
+        trend_names = trend_names[:n_trends]
     table_name = generate_table_name()
     table = generate_mongo_table_connection(table_name)
 
     twitter_stream = create_twitter_stream(table, n_hours)
     twitter_stream.filter(track=trend_names)
-    return table_name, trend_names
+    return table, table_name, trend_names
 
 
 def stream_topics(topic_list, topic_name, n_hours=None):
