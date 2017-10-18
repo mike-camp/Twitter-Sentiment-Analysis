@@ -12,7 +12,7 @@ def visualize_sentiment(df):
     creates a visualization of the sentiment of the entire US.
     """
     df_grouped = df[['sentiment', 'state']].groupby(['state']).mean()
-    gdf = gpd.read_file('../data/state_geojson.json')
+    gdf = gpd.read_file('data/state_geojson.json')
     merged_df = gdf.merge(df_grouped, left_on='name', right_index=True)
     data_df = merged_df.iloc[:, [0, 3]]
     geo_str = gpd.GeoDataFrame(merged_df.iloc[:, [0, 2]]).to_json()
@@ -48,7 +48,7 @@ def visualize_count(df):
     """
     avg_sentiment = df.sentiment.mean()
     df_grouped = df[['sentiment', 'state']].groupby(['state']).count()
-    gdf = gpd.read_file('../data/state_geojson.json')
+    gdf = gpd.read_file('data/state_geojson.json')
     merged_df = gdf.merge(df_grouped, left_on='name', right_index=True)
     merged_df = merged_df.fillna(0)
     data_df = merged_df.iloc[:, [0, 3]]

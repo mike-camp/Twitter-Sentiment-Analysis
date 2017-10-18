@@ -45,7 +45,7 @@ class CustomStreamListener(StreamListener):
         # test for exit if n_hours has been set
         if self.n_hours is None:
             return True
-        if (now - self.begin_time).hours > self.n_hours:
+        if (now - self.begin_time).seconds*60*60 > self.n_hours:
             return False
 
     def on_error(self, status_code):
