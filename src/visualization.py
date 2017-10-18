@@ -16,7 +16,7 @@ def visualize_sentiment(df):
     merged_df = gdf.merge(df_grouped, left_on='name', right_index=True)
     data_df = merged_df.iloc[:, [0, 3]]
     geo_str = gpd.GeoDataFrame(merged_df.iloc[:, [0, 2]]).to_json()
-    map1 = folium.Map(location=[+35, -100],
+    map1 = folium.Map(location=[+37, -100],
                       tiles='Cartodb Positron',
                       zoom_start=4)
     map1.choropleth(geo_data=geo_str,
@@ -53,7 +53,7 @@ def visualize_count(df):
     merged_df = merged_df.fillna(0)
     data_df = merged_df.iloc[:, [0, 3]]
     geo_str = gpd.GeoDataFrame(merged_df.iloc[:, [0, 2]]).to_json()
-    map1 = folium.Map(location=[+35, -100],
+    map1 = folium.Map(location=[+37, -100],
                       tiles='Cartodb Positron',
                       zoom_start=4)
     map1.choropleth(geo_data=geo_str,
@@ -76,11 +76,11 @@ def create_daily_topic_maps(n_hours):
     jinja_params = {}
     for i, dataframe in enumerate(df_list):
         map_, avg_sentiment = visualize_count(dataframe)
-        map_.save('maps/daily_topics_{}.html'.format(i+1))
+        map_.save('website/maps/daily_topics_{}.html'.format(i+1))
         jinja_params['topic_{}'.format(i+1)] = daily_topics[i]
         jinja_params['topic_score_{}'.format(i+1)] = '{:.2f}'.format(
             avg_sentiment)
-    with open('daily_trends_template.html','r') as f:
+    with open('website/daily_trends_template.html', 'r') as f:
         template = jinja2.Template(f.read())
-    with open('daily_trends.html','w') as f:
+    with open('website/daily_trends.html', 'w') as f:
         f.write(template.render(**jinja_params))
