@@ -25,7 +25,7 @@ class TweetProcessor(object):
         abbreviated names of all states
     """
 
-    def __init__(self, model, data_dir='../data'):
+    def __init__(self, model, data_dir='data'):
         if isinstance(model, str):
             self.load_model(model)
         else:
@@ -119,6 +119,8 @@ class TweetProcessor(object):
         bool, True or False depending on whether or not the tweet contains
             the topic
         """
+        if topics is None:
+            return True
         if ('extended_tweet' in tweet) and ('hashtags' in
                                             tweet['extended_tweet']):
             hashtags = [hashtag['text'].lower() for hashtag in
