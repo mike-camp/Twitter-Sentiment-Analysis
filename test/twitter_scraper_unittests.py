@@ -16,7 +16,7 @@ class TestTwitterScraper(unittest.TestCase):
         client = MongoClient('mongodb://{}:{}@localhost:27017'.format(
             MONGO.USER, MONGO.PASSWORD))
         database = client['twitter_database']
-        table = database['test_method']
+        table = database['test_stream_topics']
         table.remove({})
         self.assertEqual(table.count(), 0)
         process = Process(target=twitter_scraper.stream_topics,
