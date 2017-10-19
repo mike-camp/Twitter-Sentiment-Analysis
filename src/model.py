@@ -99,6 +99,7 @@ class TweetPredictor(object):
             print(grid_search.best_params_)
             print(grid_search.best_score_)
         self._estimator = grid_search.best_estimator_
+        self._estimator.fit(tweets,labels)
 
     def predict_proba(self, tweets):
         """Given a collection of tweets, predicts the probability
@@ -121,4 +122,4 @@ class TweetPredictor(object):
 
 if __name__ == '__main__':
     model = TweetPredictor()
-    model.train(verbose=True, source='kaggle')
+    model.train(verbose=True, source='emoticon')
