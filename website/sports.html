@@ -79,24 +79,46 @@
 									<h2>Twitter Sentiment for Sports Teams</h2>
 								</header>
                 <p><strong> Roll Tide </strong></p>
-                <p> Symbolizing alabama sports, Tweets referencing Roll Tide tend to be positive and mostly clustered around alabama and the Deep South.   
+                <p> Symbolizing alabama sports, Tweets referencing Roll Tide tend to be positive and mostly clustered around alabama and the Deep South.   The sentiment tends not to vary across the US with most locations reporting simlar sentiment scores on Twitter. 
                 <p>
-                  <h2><strong> {{ topic_1 }} -- Sentiment: {{ topic_score_1 }}</strong> </h2>
+                  <h2><strong> Sentiment of Rolltide tweets across US</strong> </h2>
                   <object width="700" height="400" data="maps/daily_topics_1.html"> 
                     Your browser doesn't support object 
                   </object>
                 </p>
                 
                 <p>
-                  <h2><strong> {{ topic_2 }} -- Sentiment: {{ topic_score_2 }}</strong> </h2>
+                  <h2><strong> Number of tweets involving Rolltide</strong> </h2>
                   <object width="700" height="400" data="maps/daily_topics_2.html"> 
                     Your browser doesn't support object 
                   </object>
                 </p>
+                
+                <p><strong> The New England Patriots </strong></p>
+                <p> The New england patriots are one of the best football teams in the country.  The following data was taken on October 1st when the New England Patriots lost to the Carolina Panthers 30-33.   </p>
+                <p><strong> Sentiment Across Nation </strong></p>
+                <object width="700" height="400" data="maps/patriots_sentiment.html">
+                  Your browser doesn't support object
+                </object>
+                <p>
+                  Although we might naively expect the sentiment surrounding the Patriots to be highest in Massachusetts, we actually see that it is lower.   To figure out whats going on here, we can look at some tweets from the game. 
+                  <ul style="list-style-type:square">
+                    <li>RT @NFL_Memes: If the original Patriots defense was this bad, we'd all be British. 0.14993841164396318</li>
+                    <li>@Patriots down 14 and then start getting aggressive and going no huddle? How about showing that urgency BEFORE IT GETS TO THAT POINT!!!! 0.5402741795739572</li>
+                    <li>I'm sure the #Patriots will be able to fix everything wrong with their D, specials and O line in the 4 days before they play at Tampa. 0.40218030424849777
+                    <li>RT @Panthers: Dab on 'em @Patriots 😃 https://t.co/E3LLMpHuG2 0.7638104706263552</li>
+                    <li>RT @JeopardySports: “Who are: the New England Patriots?”
+                    #JeopardySports #CARvsNE https://t.co/JVaNYrdQ7D 0.7999007944711222</li>
+                    <li>When the patriots lost and are sitting at 2-2 but the last time we started off that way we won the Super Bowl https://t.co/YoCkLVH5v6 0.66979677022259</li>
+                    <li>Well, the Patriots game sucked. 0.39671019079976555</li>
+                  </ul>
+                </p>
+                <p> We can also examine who was tweeting about the New England Patriots.  As we can see below.  Most of the tweets are found around Massachusetts, with the next largest number coming from North Carolina.  The unreasonably strong sentiment from wyoming?  As we can see from this graph, is that that sentiment was most likely due to the small number of people tweeting from Carolina.   In this we also see a pitfall of just reading the sentiment maps by themselves.  The people tweeting in places with small numbers of fans tend to be more enthusiastic than someone from Boston.   
+                </p>
 
                 <p>
-                  <h2><strong> {{ topic_3  }} -- Sentiment: {{ topic_score_3 }}</strong> </h2>
-                  <object width="700" height="400" data="maps/daily_topics_3.html"> 
+                  <h2><strong> Who's tweeting about the Patriots?</strong> </h2>
+                  <object width="700" height="400" data="maps/patriots_count.html"> 
                     Your browser doesn't support object 
                   </object>
                 </p>
