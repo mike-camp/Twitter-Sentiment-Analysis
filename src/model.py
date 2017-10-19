@@ -122,4 +122,8 @@ class TweetPredictor(object):
 
 if __name__ == '__main__':
     model = TweetPredictor()
+    with open('models/untrained_emoticon_lr_model.pk','wb') as f:
+        pickle.dump(model,f)
     model.train(verbose=True, source='emoticon')
+    with open('models/emoticon_lr_model.pk','wb') as f:
+        pickle.dump(model,f)
