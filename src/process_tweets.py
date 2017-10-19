@@ -5,6 +5,8 @@ import re
 import pickle
 import os
 import pandas as pd
+from src import model
+from src.model import TweetPredictor
 import datetime
 import dateutil
 import pytz
@@ -45,6 +47,7 @@ class TweetProcessor(object):
         save_location: str
             file location
         """
+        from src.model import TweetPredictor
         with open(save_location, 'rb') as f:
             self._model = pickle.load(f)
 

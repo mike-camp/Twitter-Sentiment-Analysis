@@ -1,10 +1,10 @@
 import pickle
 import pandas as pd
 import unittest as unittest
+from src.model import TweetPredictor
 from src.process_tweets import TweetProcessor
 from src import process_tweets
 from src import twitter_scraper
-from src.model import TweetPredictor
 from pymongo import MongoClient
 from src.apikeys import MONGO
 
@@ -49,9 +49,8 @@ class TestTweetPreprocesor(unittest.TestCase):
         # with open('models/tfidf_logistic_reg.pk', 'wb') as f:
         #     pickle.dump(model, f)
         # print('dumped model')
-        with open('models/tfidf_logistic_reg.pk', 'rb') as f:
-            model = pickle.load(f)
-        tweet_processor = TweetProcessor(model, 'data')
+        tweet_processor = TweetProcessor(
+            'models/emoticon_lr_model.pk')
         with open('test/data/pickled_tweets.pk', 'rb') as f:
             tweets = pickle.load(f)
         for tweet in tweets:
@@ -60,15 +59,14 @@ class TestTweetPreprocesor(unittest.TestCase):
             self.assertLessEqual(prediction, 1.)
 
     def test_process_database(self):
-        with open('models/tfidf_logistic_reg.pk', 'rb') as f:
-            model = pickle.load(f)
-        tweet_processor = TweetProcessor(model, 'data')
+        tweet_processor = TweetProcessor(
+            'models/emoticon_lr_model.pk')
         client = MongoClient('mongodb://{}:{}@localhost:27017'.format(
             MONGO.USER, MONGO.PASSWORD))
         database = client['twitter_database']
         table = database['test_method']
         dataframe = tweet_processor.process_database(table)
         self.assertIsInstance(dataframe, pd.DataFrame)
-        self.assertEqual(['state','date','sentiment','time_bin'],
+        self.assertEqual(['text','state','date','sentiment','time_bin'],
                          list(dataframe.columns))
 
