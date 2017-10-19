@@ -20,7 +20,7 @@ class TestTwitterScraper(unittest.TestCase):
         table.remove({})
         self.assertEqual(table.count(), 0)
         process = Process(target=twitter_scraper.stream_topics,
-                          args=(['nfl', 'football'], 'test_method'))
+                          args=(['nfl', 'football'], 'test_stream_topics'))
         process.start()
         time.sleep(10)
         process.terminate()

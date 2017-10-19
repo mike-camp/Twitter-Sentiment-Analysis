@@ -70,7 +70,8 @@ def create_daily_topic_maps(n_hours):
     """Creates three maps for the top trending topics of the day"""
     table, _, daily_topics = twitter_scraper.stream_trends(n_trends=3,
                                                            n_hours=n_hours)
-    tweet_processor = process_tweets.TweetProcessor('models/tfidf_logistic_reg.pk')
+    tweet_processor = process_tweets.TweetProcessor(
+        'models/emoticon_lr_model.pk')
     df_list = [tweet_processor.process_database(table, topics=[topic])
                                                 for topic in daily_topics]
     jinja_params = {}
@@ -84,3 +85,22 @@ def create_daily_topic_maps(n_hours):
         template = jinja2.Template(f.read())
     with open('website/daily_trends.html', 'w') as f:
         f.write(template.render(**jinja_params))
+
+
+def create_topic_maps(topic_list, topic_name, n_hours=None):
+    """Given a list of topics, creates maps according to the topic"""
+    table = twitter_scraper.stream_topics(topic_list, topic_name,
+                                          n_hours=n_hours)
+
+    tweet_processor = process_tweets.TweetProcessor(
+        'models/emoticon_lr_model.pk')
+    df_list = [tweet_processor.process_database(table, topics=[topic])
+               for topic in topic_list]
+    for topic,dataframe in zip(topic_list, df_list):
+        map_, avg_sentiment = visualize_count(dataframe)
+        map_.save('website/maps/{}_count.html'.format(topic))
+    with open('website/maps/sentiment_{}.txt'.format(topic), 'w') as f:
+        f.write('{:.2f}'.format(avg_sentiment))
+
+    map_ = visualize_sentiment(dataframe)
+    map_.save('website/maps/{}_sentiment.html'.format(topic))

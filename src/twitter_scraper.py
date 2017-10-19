@@ -142,7 +142,12 @@ def stream_topics(topic_list, topic_name, n_hours=None):
         name of table corresponding to topics
     n_hours: int
         number of hours to stream topics
+
+    Returns:
+    --------
+    Connection to mongodb table
     """
     table = generate_mongo_table_connection(topic_name)
     twitter_stream = create_twitter_stream(table, n_hours)
     twitter_stream.filter(track=topic_list)
+    return table
