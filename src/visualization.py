@@ -11,20 +11,20 @@ def visualize_sentiment(df):
     """Given a dataframe with columns, state and sentiment,
     creates a visualization of the sentiment of the entire US.
     """
-    df_grouped = df[['sentiment', 'state']].groupby(['state']).mean()
-    gdf = gpd.read_file('data/state_geojson.json')
-    merged_df = gdf.merge(df_grouped, left_on='name', right_index=True)
-    data_df = merged_df.iloc[:, [0, 3]]
-    geo_str = gpd.GeoDataFrame(merged_df.iloc[:, [0, 2]]).to_json()
+    df_grouped = df[['state', 'sentiment']].groupby('state').mean()
+    gdf = gpd.read_file('data/cb_2016_us_state_20m.dbf')
+    merged_df = gdf.merge(df_grouped, left_on='NAME', right_index=True)
+    data_df = merged_df[['NAME', 'sentiment']]
+    geo_str = merged_df[['NAME', 'geometry']].to_json()
     map1 = folium.Map(location=[+37, -100],
                       tiles='Cartodb Positron',
                       zoom_start=4)
     map1.choropleth(geo_data=geo_str,
                     data=data_df,
-                    columns=['name', 'sentiment'],
-                    legend_name='sentiment',
+                    columns=['NAME', 'sentiment'],
                     fill_color='RdBu',
-                    key_on='feature.properties.name')
+                    key_on='feature.properties.NAME',
+                    legend_name='sentiment')
     return map1
 
 
@@ -48,21 +48,21 @@ def visualize_count(df):
     """
     avg_sentiment = df.sentiment.mean()
     df_grouped = df[['sentiment', 'state']].groupby(['state']).count()
-    gdf = gpd.read_file('data/state_geojson.json')
-    merged_df = gdf.merge(df_grouped, left_on='name', right_index=True)
+    gdf = gpd.read_file('data/cb_2016_us_state_20m.dbf')
+    merged_df = gdf.merge(df_grouped, left_on='NAME', right_index=True)
     merged_df = merged_df.fillna(0)
-    data_df = merged_df.iloc[:, [0, 3]]
-    geo_str = gpd.GeoDataFrame(merged_df.iloc[:, [0, 2]]).to_json()
+    data_df = merged_df[['NAME', 'sentiment']]
+    geo_str = merged_df[['NAME', 'geometry']].to_json()
     map1 = folium.Map(location=[+37, -100],
                       tiles='Cartodb Positron',
                       zoom_start=4)
     map1.choropleth(geo_data=geo_str,
                     data=data_df,
-                    columns=['name', 'sentiment'],
+                    columns=['NAME', 'sentiment'],
                     fill_color='YlGn',
                     legend_name='number of tweets',
                     name='topic: sentiment = {:.2f}'.format(avg_sentiment),
-                    key_on='feature.properties.name')
+                    key_on='feature.properties.NAME')
     return map1, avg_sentiment
 
 
