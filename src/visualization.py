@@ -104,3 +104,10 @@ def create_topic_maps(topic_list, topic_name, n_hours=None):
 
     map_ = visualize_sentiment(dataframe)
     map_.save('website/maps/{}_sentiment.html'.format(topic))
+
+
+def create_maps_from_database(database, topic_list):
+    """Given a database and a list of topics, scrapes the database,
+    generates visualizations, and then saves the visualizations
+    """
+    pass
