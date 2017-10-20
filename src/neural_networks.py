@@ -4,6 +4,7 @@ for classifying sentiment
 import tensorflow as tf
 import numpy as np
 from src import utils
+from sklearn.utils import shuffle
 
 class RNN(object):
     """A class for creating a character level
@@ -22,9 +23,9 @@ class RNN(object):
         self.n_hidden = n_hidden
         self.max_sequence_length = max_sequence_length
         self.lr = learning_rate
-        self.l2=l2
+        self.l2 = l2
 
-    def split(self,ls, sublist_length=2000):
+    def split(self, ls, sublist_length=2000):
         """shuffles, then splits a list into several chunks of length
         sublist_length
 
@@ -37,7 +38,7 @@ class RNN(object):
         iterable of sublists
         """
         return [ls[i:i+sublist_length] for i in
-                range(0,len(ls),sublist_length)]
+                range(0, len(ls), sublist_length)]
 
     def partial_fit(self, sess, tweets, labels):
         """partially fits a neural network to classify tweets
@@ -50,8 +51,8 @@ class RNN(object):
             list of tweet labels
         """
         tweets, lengths = utils._encode_tweet_collection(tweets,
-                                                   self.max_sequence_length,
-                                                    self.embedding_dim)
+                                                         self.max_sequence_length,
+                                                         self.embedding_dim)
         labels = np.array(labels)
         for batch_x, batch_length, batch_label in self._get_mini_batches(
                                                         tweets, lengths, labels):
@@ -60,7 +61,7 @@ class RNN(object):
                              self.label_input:batch_label}
             sess.run((self.optimizer, self.accuracy_update,
                       self.precision_update,
-                     self.recall_update),feed_dict = feed_dict)
+                     self.recall_update), feed_dict=feed_dict)
 
     def fit(self, tweets, labels):
         """Fits a neural network to classify tweets
@@ -78,7 +79,7 @@ class RNN(object):
 
         logit_predictions = self._get_logit_predictions(self.x_input, self.length_input)
         one_hot_labels = tf.one_hot(indices=self.label_input, depth=self.n_classes,
-                                    on_value=1,off_value=0,dtype=tf.int32)
+                                    on_value=1, off_value=0, dtype=tf.int32)
         self.cost, self.optimizer = self._optimize(logit_predictions, one_hot_labels)
         self.predictions = tf.argmax(logit_predictions, 1)
 
@@ -143,8 +144,8 @@ class RNN(object):
     def score(self, tweets, predictions):
 
         tweets, lengths = utils._encode_tweet_collection(tweets,
-                                                 self.max_sequence_length,
-                                                self.embedding_dim)
+                                                         self.max_sequence_length,
+                                                         self.embedding_dim)
         labels = np.array(predictions)
         feed_dict = {self.x_input:tweets,
                      self.length_input:lengths,
@@ -261,3 +262,58 @@ class RNN(object):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)\
                 .minimize(regulated_cost)
         return cost, optimizer
+
+
+def preprocess_data_from_mongo(X, embedding_dim=300, sentence_length=20):
+    """Loads the text data from a  mongodb connection and then
+    processes it into a padded array, which is then returned
+    along with an array corresponding to sequence lengths
+    """
+    pass
+
+
+def preprocess_data(embedding_dim=10, sentence_length=10):
+    """Loads the data from the emoticon labeled tweets, and then processes
+    these using word to vec
+    """
+    dataframe = pd.read_csv('../data/training.1600000.processed.noemoticon.csv',
+                            encoding='iso8859', header=None,
+                            names=['sentiment', 'id', 'time', 'query', 'user',
+                                   'text'])
+    labels = dataframe.sentiment/4
+    tweets = dataframe.text
+    labels, tweets = shuffle(tweets, labels)
+    tokenized_tweets = [utils.tokenize_and_stem(tweet) for tweet in tweets]
+
+
+class CNN(object):
+    """ A CNN for tweet classification,
+    Uses word2vec as the initial layer, followed by a convolutional
+    layer
+
+    Taken from wildml.com/2015/12/implementing-a-cnn-for-text\
+            -classification-in-tensorflow
+
+    Attributes:
+    -----------
+    sequence_length: int, length of sentences
+    num_classes: int, number of classes to predict
+    embedding_size, int, dim of word2vec word embedding
+    filter_sizes: list(int), number of words we want each of
+        the convolutional filters to cover
+    num_filters: list(int), number of filters per filter size
+    """
+    def __init__(self,sequence_length, num_classes, embeding_size,
+                 filter_sizes, num_filters):
+        self.sequence_length = sequence_length
+        self.num_classes = num_classes
+        self.num_filters = num_filters
+        self.x_input = tf.placeholder(tf.float32,
+                                      [None, sequence_length, embeding_size],
+                                      name='x_input')
+        self.y_input = tf.placeholder(tf.float32,
+                                      [None, num_classes],
+                                      name='y_input')
+
+
+
