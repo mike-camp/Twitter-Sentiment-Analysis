@@ -109,3 +109,4 @@ data/
 apikeys.py
 notebooks/checkpoints
 templates
+notebooks/images
