@@ -3,8 +3,10 @@ for classifying sentiment
 """
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 from src import utils
 from sklearn.utils import shuffle
+from gensim.models import Word2Vec
 
 class RNN(object):
     """A class for creating a character level
@@ -13,8 +15,8 @@ class RNN(object):
 
     def __init__(self, n_epochs, embedding_dim=126, batch_size=100,
                  cell_type='rnn', n_hidden=100, n_classes=2,
-                learning_rate=.01, max_sequence_length=140,
-                l2=.01):
+                 learning_rate=.01, max_sequence_length=20,
+                 l2=.01):
         self.n_epochs = n_epochs
         self.embedding_dim = embedding_dim
         self.batch_size = batch_size
@@ -24,6 +26,13 @@ class RNN(object):
         self.max_sequence_length = max_sequence_length
         self.lr = learning_rate
         self.l2 = l2
+        tweets, lengths, labels = preprocess_data(embedding_dim,
+                                                  max_sequence_length)
+        self.tweets = np.array(tweets)
+        self.lengths = np.array(lengths)
+        self.labels = np.array(labels)
+
+
 
     def split(self, ls, sublist_length=2000):
         """shuffles, then splits a list into several chunks of length
@@ -40,7 +49,7 @@ class RNN(object):
         return [ls[i:i+sublist_length] for i in
                 range(0, len(ls), sublist_length)]
 
-    def partial_fit(self, sess, tweets, labels):
+    def partial_fit(self, sess, tweets, lengths, labels):
         """partially fits a neural network to classify tweets
 
         Parameters:
@@ -50,18 +59,16 @@ class RNN(object):
         labels, list(int)
             list of tweet labels
         """
-        tweets, lengths = utils._encode_tweet_collection(tweets,
-                                                         self.max_sequence_length,
-                                                         self.embedding_dim)
-        labels = np.array(labels)
-        for batch_x, batch_length, batch_label in self._get_mini_batches(
-                                                        tweets, lengths, labels):
+        for batch_x, batch_length, batch_label in\
+                             self._get_mini_batches(tweets,
+                                                    lengths,
+                                                    labels):
             feed_dict = {self.x_input:batch_x,
-                             self.length_input:batch_length,
-                             self.label_input:batch_label}
+                         self.length_input:batch_length,
+                         self.label_input:batch_label}
             sess.run((self.optimizer, self.accuracy_update,
                       self.precision_update,
-                     self.recall_update), feed_dict=feed_dict)
+                      self.recall_update), feed_dict=feed_dict)
 
     def fit(self, tweets, labels):
         """Fits a neural network to classify tweets
@@ -105,7 +112,7 @@ class RNN(object):
 
             for epoch in range(self.n_epochs):
                 for split in self.split(indices):
-                    self.partial_fit(sess,tweets[split],labels[split])
+                    self.partial_fit(sess, tweets[split], labels[split])
                 a, p, r = sess.run((accuracy, precision, recall))
                 sess.run(reset_measurements)
                 f1_score = 2*p*r/(p+r)
@@ -275,6 +282,23 @@ def preprocess_data_from_mongo(X, embedding_dim=300, sentence_length=20):
 def preprocess_data(embedding_dim=10, sentence_length=10):
     """Loads the data from the emoticon labeled tweets, and then processes
     these using word to vec
+
+    Parameters:
+    -----------
+    embedding_dim: int
+        size of vectors to embed words in
+    sentence_length: int
+        maximum length of sentence.  Sentences shorter than this length
+        will be padded.  Longer sentences will be shortened.
+
+    Returns:
+    --------
+    tokenized_tweets: arraylike, shape=[n_tweets,sentence_length,embedding_dim]
+        embedding of tweets
+    labels: arraylike, shape=[n_tweets,num_classes]
+    lengths: arraylike, shape=[n_tweets]
+        lengths of tweets before processing, tweets longer than
+        sentence_length are shortened to sentence_length
     """
     dataframe = pd.read_csv('../data/training.1600000.processed.noemoticon.csv',
                             encoding='iso8859', header=None,
@@ -284,6 +308,25 @@ def preprocess_data(embedding_dim=10, sentence_length=10):
     tweets = dataframe.text
     labels, tweets = shuffle(tweets, labels)
     tokenized_tweets = [utils.tokenize_and_stem(tweet) for tweet in tweets]
+    word_to_vec = Word2Vec(tokenized_tweets, size=embedding_dim).wv
+    tokenized_tweets = [[list(word_to_vec[word]) for word in tweet if
+                         word in word_to_vec.vocab] for tweet in
+                        tokenized_tweets]
+    lengths = [len(tweet) for tweet in tokenized_tweets]
+    lengths = [min(length, sentence_length) for length in lengths]
+    pad = [0. for i in range(embedding_dim)]
+    tokenized_tweets = [[tweet[i] if i < len(tweet) else pad for i in
+                         range(sentence_length)] for tweet in
+                        tokenized_tweets]
+    tokenized_tweets = [tweet for tweet, length in zip(tokenized_tweets, lengths)
+                        if length > 0]
+    labels = [label for label, length in zip(tokenized_tweets, lengths)
+              if length > 0]
+    lengths = [length for length in lengths if length > 0]
+    labels = [[0, 1] if label else [1, 0] for label in labels]
+    return tokenized_tweets, labels, lengths
+
+
 
 
 class CNN(object):
@@ -303,17 +346,61 @@ class CNN(object):
         the convolutional filters to cover
     num_filters: list(int), number of filters per filter size
     """
-    def __init__(self,sequence_length, num_classes, embeding_size,
+    def __init__(self, sequence_length, num_classes, embedding_size,
                  filter_sizes, num_filters):
         self.sequence_length = sequence_length
         self.num_classes = num_classes
         self.num_filters = num_filters
         self.x_input = tf.placeholder(tf.float32,
-                                      [None, sequence_length, embeding_size],
+                                      [None, sequence_length, embedding_size],
                                       name='x_input')
         self.y_input = tf.placeholder(tf.float32,
                                       [None, num_classes],
                                       name='y_input')
+        self.length_input = tf.placeholder(tf.int32,
+                                           [None],
+                                           name='length_input')
+        self.filter_sizes = filter_sizes
+        self.embedding_size = embedding_size
+
+    def create_convolution(self):
+        expanded_x = tf.expand_dims(self.x_input)
+        pooled_outputs = list()
+        for i, filter_size in enumerate(self.filter_sizes):
+            filter_shape = [self.filter_sizes, self.embedding_size, 1,
+                            self.num_filters]
+            with tf.variable_scope('conv_{}'.format(filter_size)):
+                W1 = tf.get_variable('W', filter_shape, dtype=tf.float32)
+                b1 = tf.get_variable('b', [self.num_filters], dtype=tf.float32)
+                conv = tf.nn.conv2d(expanded_x, W1, strides=[1, 1, 1, 1],
+                                    padding="VALID", name='conv')
+                h = tf.nn.relu(conv+b1)
+                pooled = tf.nn.max_pool(h,
+                                        ksize=[1,
+                                               self.sequence_length\
+                                               -filter_size+1,
+                                               1, 1],
+                                        strides=[1, 1, 1, 1],
+                                        padding='VALID',
+                                        name="pool")
+                pooled_outputs.append(pooled)
+        num_filters_total = self.num_filters * len(self.filter_sizes)
+        self.h_pool = tf.concat(pooled_outputs, 3)
+        self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
+
+        # add dropout
+        with tf.variable_scope("dropout"):
+            h_drop = tf.nn.dropout(self.h_pool_flat,
+                                        [-1, num_filters_total])
+
+        #output scores and predicitions
+        with tf.variable_scope("output"):
+            W = tf.get_variable("W", shape=[num_filters_total,
+                                            self.num_classes])
+            b = tf.get_variable('b', shape=[self.num_classes])
+        predictions = h_drop*W + b
+            
+        
 
 
 
