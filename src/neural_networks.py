@@ -483,3 +483,14 @@ class CNN(object):
                                    'training loss:{:.3f} -- '+
                                    'test loss: {:.3f}')
                 print(training_string.format(i, training_loss, test_loss))
+
+    def predict_proba(self, X):
+        """predicts the probability of positive or negative
+        """
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            saver.restore(sess, 'checkpoints/cnn.ckpt')
+            feed_dict = {self.x_input:X}
+            prob = sess.run(tf.nn.softmax(self.test_prob),
+                            feed_dict=feed_dict)
+        return prob
