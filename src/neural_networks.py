@@ -280,7 +280,7 @@ def preprocess_data_from_mongo(X, embedding_dim=300, sentence_length=20):
     pass
 
 
-def preprocess_data(embedding_dim=10, sentence_length=10):
+def preprocess_data(embedding_dim=10, sentence_length=10, n_examples = None):
     """Loads the data from the emoticon labeled tweets, and then processes
     these using word to vec
 
@@ -305,9 +305,11 @@ def preprocess_data(embedding_dim=10, sentence_length=10):
                             encoding='iso8859', header=None,
                             names=['sentiment', 'id', 'time', 'query', 'user',
                                    'text'])
+    if n_examples:
+        dataframe = dataframe.iloc[:n_examples, :]
     labels = dataframe.sentiment/4
     tweets = dataframe.text
-    labels, tweets = shuffle(tweets, labels)
+    tweets, labels = shuffle(tweets, labels)
     tokenized_tweets = [utils.tokenize_and_stem(tweet) for tweet in tweets]
     word_to_vec = Word2Vec(tokenized_tweets, size=embedding_dim).wv
     tokenized_tweets = [[list(word_to_vec[word]) for word in tweet if
@@ -321,7 +323,7 @@ def preprocess_data(embedding_dim=10, sentence_length=10):
                         tokenized_tweets]
     tokenized_tweets = [tweet for tweet, length in zip(tokenized_tweets, lengths)
                         if length > 0]
-    labels = [label for label, length in zip(tokenized_tweets, lengths)
+    labels = [label for label, length in zip(labels, lengths)
               if length > 0]
     lengths = [length for length in lengths if length > 0]
     labels = [[0, 1] if label else [1, 0] for label in labels]
@@ -349,13 +351,14 @@ class CNN(object):
     """
     def __init__(self, sequence_length, num_classes, embedding_size,
                  filter_sizes, num_filters, learning_rate=.001,
-                 batch_size=100, num_epochs=1000):
+                 batch_size=100, num_epochs=1000,
+                 dropout_keep_prob=.6):
         self.sequence_length = sequence_length
         self.num_classes = num_classes
         self.num_filters = num_filters
         self.learning_rate= learning_rate
         self.x_input = tf.placeholder(tf.float32,
-                                      [None, sequence_length, embedding_size],
+                                      shape=[None, sequence_length, embedding_size],
                                       name='x_input')
         self.y_input = tf.placeholder(tf.float32,
                                       [None, num_classes],
@@ -367,12 +370,14 @@ class CNN(object):
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.embedding_size = embedding_size
+        self.dropout_keep_prob = dropout_keep_prob
         self.setup_graph()
 
     def create_one_conv(self, x_input, filter_size):
         filter_shape = [filter_size, self.embedding_size, 1,
                         self.num_filters]
-        with tf.variable_scope('conv_filter_{}'.format(filter_size)):
+        with tf.variable_scope('conv_filter_{}'.format(filter_size),
+                               reuse=False):
             W = tf.get_variable('W', filter_shape, dtype=tf.float32)
             b = tf.get_variable('b', [self.num_filters], dtype=tf.float32)
         conv = tf.nn.conv2d(x_input, W, strides=[1, 1, 1, 1],
@@ -398,9 +403,7 @@ class CNN(object):
 
     def add_dropout(self, x_input):
         num_filters_total = self.num_filters * len(self.filter_sizes)
-        with tf.variable_scope('dropout'):
-            dropped_x = tf.nn.dropout(x_input,
-                                      [-1, num_filters_total])
+        dropped_x = tf.nn.dropout(x_input, self.dropout_keep_prob)
         return dropped_x
 
     def create_predictions(self, x_input, reuse):
@@ -413,7 +416,7 @@ class CNN(object):
         return predictions
 
     def create_convolutional_graph(self, x_input):
-        expanded_x = tf.expand_dims(x_input)
+        expanded_x = tf.expand_dims(x_input, -1)
         pooled_outputs = self.create_conv_layer(expanded_x)
         dropout_pooled_outputs = self.add_dropout(pooled_outputs)
         self.training_prob = self.create_predictions(dropout_pooled_outputs,
@@ -423,7 +426,8 @@ class CNN(object):
         self.test_predictions = tf.argmax(self.test_prob, axis=1)
 
     def create_loss_function(self, pred_prob, labels):
-        losses = tf.nn.softmax_cross_entropy_with_logits(pred_prob, labels)
+        losses = tf.nn.softmax_cross_entropy_with_logits(logits=pred_prob,
+                                                         labels=labels)
         return tf.reduce_mean(losses)
 
     def create_training_function(self, loss):
@@ -464,17 +468,18 @@ class CNN(object):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
         saver = tf.train.Saver()
         with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
             test_feed_dict = {self.x_input:X_test,
                               self.y_input:y_test}
             test_loss = sess.run(self.test_loss, feed_dict=test_feed_dict)
             for i in range(self.num_epochs):
                 training_loss = self.run_training_epoch(sess, X_train,
                                                         y_train)
-                current_test_loss = sess.run(test_loss, feed_dict=test_feed_dict)
+                current_test_loss = sess.run(self.test_loss, feed_dict=test_feed_dict)
                 if current_test_loss < test_loss:
                     test_loss = current_test_loss
                     saver.save(sess, 'checkpoints/cnn.ckpt')
                 training_string = ('epoch: {} -- '+
                                    'training loss:{:.3f} -- '+
-                                   'test loss: {.3f}')
+                                   'test loss: {:.3f}')
                 print(training_string.format(i, training_loss, test_loss))
