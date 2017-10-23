@@ -126,7 +126,10 @@ def stream_trends(trend_list=None, n_trends=None, n_hours=2):
     table = generate_mongo_table_connection(table_name)
 
     twitter_stream = create_twitter_stream(table, n_hours)
-    twitter_stream.filter(track=trend_names)
+    try:
+        twitter_stream.filter(track=trend_names)
+    except:
+        pass
     return table, table_name, trend_names
 
 
