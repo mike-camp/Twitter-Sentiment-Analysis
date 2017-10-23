@@ -7,6 +7,7 @@ import pandas as pd
 from src import utils
 from sklearn.utils import shuffle
 from gensim.models import Word2Vec
+from sklearn.model_selection import train_test_split
 
 class RNN(object):
     """A class for creating a character level
@@ -347,10 +348,12 @@ class CNN(object):
     num_filters: list(int), number of filters per filter size
     """
     def __init__(self, sequence_length, num_classes, embedding_size,
-                 filter_sizes, num_filters):
+                 filter_sizes, num_filters, learning_rate=.001,
+                 batch_size=100, num_epochs=1000):
         self.sequence_length = sequence_length
         self.num_classes = num_classes
         self.num_filters = num_filters
+        self.learning_rate= learning_rate
         self.x_input = tf.placeholder(tf.float32,
                                       [None, sequence_length, embedding_size],
                                       name='x_input')
@@ -361,46 +364,117 @@ class CNN(object):
                                            [None],
                                            name='length_input')
         self.filter_sizes = filter_sizes
+        self.batch_size = batch_size
+        self.num_epochs = num_epochs
         self.embedding_size = embedding_size
+        self.setup_graph()
 
-    def create_convolution(self):
-        expanded_x = tf.expand_dims(self.x_input)
+    def create_one_conv(self, x_input, filter_size):
+        filter_shape = [filter_size, self.embedding_size, 1,
+                        self.num_filters]
+        with tf.variable_scope('conv_filter_{}'.format(filter_size)):
+            W = tf.get_variable('W', filter_shape, dtype=tf.float32)
+            b = tf.get_variable('b', [self.num_filters], dtype=tf.float32)
+        conv = tf.nn.conv2d(x_input, W, strides=[1, 1, 1, 1],
+                            padding='VALID', name='conv')
+        h = tf.nn.relu(conv+b)
+        pooled = tf.nn.max_pool(h, ksize=[1,
+                                          self.sequence_length-filter_size+1,
+                                          1, 1],
+                                strides=[1, 1, 1, 1],
+                                padding='VALID',
+                                name='pool')
+        return pooled
+
+    def create_conv_layer(self, x_input):
         pooled_outputs = list()
-        for i, filter_size in enumerate(self.filter_sizes):
-            filter_shape = [self.filter_sizes, self.embedding_size, 1,
-                            self.num_filters]
-            with tf.variable_scope('conv_{}'.format(filter_size)):
-                W1 = tf.get_variable('W', filter_shape, dtype=tf.float32)
-                b1 = tf.get_variable('b', [self.num_filters], dtype=tf.float32)
-                conv = tf.nn.conv2d(expanded_x, W1, strides=[1, 1, 1, 1],
-                                    padding="VALID", name='conv')
-                h = tf.nn.relu(conv+b1)
-                pooled = tf.nn.max_pool(h,
-                                        ksize=[1,
-                                               self.sequence_length\
-                                               -filter_size+1,
-                                               1, 1],
-                                        strides=[1, 1, 1, 1],
-                                        padding='VALID',
-                                        name="pool")
-                pooled_outputs.append(pooled)
+        for filter_size in self.filter_sizes:
+            pooled = self.create_one_conv(x_input, filter_size)
+            pooled_outputs.append(pooled)
+        pooled_outputs = tf.concat(pooled_outputs, 3)
         num_filters_total = self.num_filters * len(self.filter_sizes)
-        self.h_pool = tf.concat(pooled_outputs, 3)
-        self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
+        flattened_pool = tf.reshape(pooled_outputs, [-1, num_filters_total])
+        return flattened_pool
 
-        # add dropout
-        with tf.variable_scope("dropout"):
-            h_drop = tf.nn.dropout(self.h_pool_flat,
-                                        [-1, num_filters_total])
+    def add_dropout(self, x_input):
+        num_filters_total = self.num_filters * len(self.filter_sizes)
+        with tf.variable_scope('dropout'):
+            dropped_x = tf.nn.dropout(x_input,
+                                      [-1, num_filters_total])
+        return dropped_x
 
-        #output scores and predicitions
-        with tf.variable_scope("output"):
-            W = tf.get_variable("W", shape=[num_filters_total,
+    def create_predictions(self, x_input, reuse):
+        num_filters_total = self.num_filters * len(self.filter_sizes)
+        with tf.variable_scope('output', reuse=reuse):
+            W = tf.get_variable('W', shape=[num_filters_total,
                                             self.num_classes])
             b = tf.get_variable('b', shape=[self.num_classes])
-        predictions = h_drop*W + b
-            
-        
+        predictions = tf.matmul(x_input, W)+b
+        return predictions
+
+    def create_convolutional_graph(self, x_input):
+        expanded_x = tf.expand_dims(x_input)
+        pooled_outputs = self.create_conv_layer(expanded_x)
+        dropout_pooled_outputs = self.add_dropout(pooled_outputs)
+        self.training_prob = self.create_predictions(dropout_pooled_outputs,
+                                                     False)
+        self.test_prob = self.create_predictions(pooled_outputs,True)
+        self.training_predictions = tf.argmax(self.training_prob, axis=1)
+        self.test_predictions = tf.argmax(self.test_prob, axis=1)
+
+    def create_loss_function(self, pred_prob, labels):
+        losses = tf.nn.softmax_cross_entropy_with_logits(pred_prob, labels)
+        return tf.reduce_mean(losses)
+
+    def create_training_function(self, loss):
+        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)\
+                .minimize(loss)
+        return optimizer
+
+    def setup_graph(self):
+        self.create_convolutional_graph(self.x_input)
+        self.training_loss = self.create_loss_function(self.training_prob,
+                                                       self.y_input)
+        self.test_loss = self.create_loss_function(self.test_prob,
+                                                   self.y_input)
+        self.train_op = self.create_training_function(self.training_loss)
+
+    def minibatches(self, X, y):
+        for i in range(len(X)//self.batch_size):
+            lower = i*self.batch_size
+            upper = (i+1)*self.batch_size
+            yield X[lower:upper], y[lower:upper]
+
+    def run_training_epoch(self, sess, X, y):
+        X, y = shuffle(X, y)
+        losses = []
+        for batch_x, batch_y in self.minibatches(X, y):
+            feed_dict = {self.x_input:batch_x,
+                         self.y_input:batch_y}
+            loss, _ = sess.run((self.training_loss, self.train_op),
+                               feed_dict=feed_dict)
+            losses.append(loss)
+        return np.mean(losses)
 
 
-
+    def train(self, X, y):
+        """Trains the graph using holdout validation to ensure that the test
+        error is decreasing
+        """
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            test_feed_dict = {self.x_input:X_test,
+                              self.y_input:y_test}
+            test_loss = sess.run(self.test_loss, feed_dict=test_feed_dict)
+            for i in range(self.num_epochs):
+                training_loss = self.run_training_epoch(sess, X_train,
+                                                        y_train)
+                current_test_loss = sess.run(test_loss, feed_dict=test_feed_dict)
+                if current_test_loss < test_loss:
+                    test_loss = current_test_loss
+                    saver.save(sess, 'checkpoints/cnn.ckpt')
+                training_string = ('epoch: {} -- '+
+                                   'training loss:{:.3f} -- '+
+                                   'test loss: {.3f}')
+                print(training_string.format(i, training_loss, test_loss))
