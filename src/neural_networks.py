@@ -8,6 +8,7 @@ from src import utils
 from sklearn.utils import shuffle
 from gensim.models import Word2Vec
 from sklearn.model_selection import train_test_split
+import multiprocessing
 
 class RNN(object):
     """A class for creating a character level
@@ -310,8 +311,13 @@ def preprocess_data(embedding_dim=10, sentence_length=10, n_examples = None):
     labels = dataframe.sentiment/4
     tweets = dataframe.text
     tweets, labels = shuffle(tweets, labels)
-    tokenized_tweets = [utils.tokenize_and_stem(tweet) for tweet in tweets]
+    # tokenized_tweets = [utils.tokenize_and_stem(tweet) for tweet in tweets]
+    pool = multiprocessing.pool.Pool()
+    tokenized_tweets = pool.map(utils.tokenize_and_stem, tweets)
+    pool.close()
+    pool.join()
     word_to_vec = Word2Vec(tokenized_tweets, size=embedding_dim).wv
+    print('tokenized_tweets')
     tokenized_tweets = [[list(word_to_vec[word]) for word in tweet if
                          word in word_to_vec.vocab] for tweet in
                         tokenized_tweets]
@@ -352,7 +358,7 @@ class CNN(object):
     def __init__(self, sequence_length, num_classes, embedding_size,
                  filter_sizes, num_filters, learning_rate=.001,
                  batch_size=100, num_epochs=1000,
-                 dropout_keep_prob=.6):
+                 dropout_keep_prob=.6, store_data=True):
         self.sequence_length = sequence_length
         self.num_classes = num_classes
         self.num_filters = num_filters
@@ -371,7 +377,73 @@ class CNN(object):
         self.num_epochs = num_epochs
         self.embedding_size = embedding_size
         self.dropout_keep_prob = dropout_keep_prob
+        self.store_data = store_data
+        self.create_word_dict()
         self.setup_graph()
+
+    def create_word_dict(self):
+        """Loads the data from the emoticon labeled tweets, and then processes
+        these using word to vec
+
+        Parameters:
+        -----------
+        embedding_dim: int
+            size of vectors to embed words in
+        sentence_length: int
+            maximum length of sentence.  Sentences shorter than this length
+            will be padded.  Longer sentences will be shortened.
+
+        Returns:
+        --------
+        tokenized_tweets: arraylike, shape=[n_tweets,sentence_length,embedding_dim]
+            embedding of tweets
+        labels: arraylike, shape=[n_tweets,num_classes]
+        lengths: arraylike, shape=[n_tweets]
+            lengths of tweets before processing, tweets longer than
+            sentence_length are shortened to sentence_length
+        """
+        dataframe = pd.read_csv('../data/training.1600000.processed.noemoticon.csv',
+                                encoding='iso8859', header=None,
+                                names=['sentiment', 'id', 'time', 'query', 'user',
+                                       'text'])
+        labels = dataframe.sentiment/4
+        tweets = dataframe.text
+        tweets, labels = shuffle(tweets, labels)
+        # tokenized_tweets = [utils.tokenize_and_stem(tweet) for tweet in tweets]
+        pool = multiprocessing.pool.Pool()
+        tokenized_tweets = pool.map(utils.tokenize_and_stem, tweets)
+        pool.close()
+        pool.join()
+
+        lengths = [len(tweet) for tweet in tokenized_tweets]
+        lengths = [min(length, self.sequence_length) for length in lengths]
+
+        tokenized_tweets = [tweet for tweet, length in zip(tokenized_tweets, lengths)
+                            if length > 0]
+        labels = [label for label, length in zip(labels, lengths)
+                  if length > 0]
+        lengths = [length for length in lengths if length > 0]
+
+
+        word_to_vec = Word2Vec(tokenized_tweets, size=self.embedding_size).wv
+        self.word_to_vec = word_to_vec
+        self.tweets = tweets
+        self.labels = labels
+        return
+
+    def encode_tweets(self,tweets):
+        tokenized_tweets = [[list(self.word_to_vec[word]) for word in tweet if
+                             word in self.word_to_vec.vocab] for tweet in
+                            tweets]
+        pad = [0. for i in range(self.embedding_size)]
+        tokenized_tweets = [[tweet[i] if i < len(tweet) else pad for i in
+                             range(self.sequence_length)] for tweet in
+                            tokenized_tweets]
+        return tokenized_tweets
+
+    def encode_labels(self, labels):
+        labels = [[0, 1] if label else [1, 0] for label in labels]
+        return labels
 
     def create_one_conv(self, x_input, filter_size):
         filter_shape = [filter_size, self.embedding_size, 1,
@@ -453,6 +525,8 @@ class CNN(object):
         X, y = shuffle(X, y)
         losses = []
         for batch_x, batch_y in self.minibatches(X, y):
+            batch_x = self.encode_tweets(batch_x)
+            batch_y = self.encode_labels(batch_y)
             feed_dict = {self.x_input:batch_x,
                          self.y_input:batch_y}
             loss, _ = sess.run((self.training_loss, self.train_op),
@@ -460,22 +534,34 @@ class CNN(object):
             losses.append(loss)
         return np.mean(losses)
 
+    def evaluate_test_set(self, sess, X, y):
+        losses = []
+        for batch_x, batch_y in self.minibatches(X, y):
+            batch_x = self.encode_tweets(batch_x)
+            batch_y = self.encode_labels(batch_y)
+            feed_dict = {self.x_input:batch_x,
+                         self.y_input:batch_y}
+            loss, _ = sess.run(self.test_loss,
+                               feed_dict=feed_dict)
+            losses.append(loss)
+        return np.mean(losses)
 
-    def train(self, X, y):
+    def train(self):
         """Trains the graph using holdout validation to ensure that the test
         error is decreasing
         """
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+        X_train, X_test, y_train, y_test = train_test_split(self.tweets,
+                                                            self.labels,
+                                                            test_size=.2)
         saver = tf.train.Saver()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            test_feed_dict = {self.x_input:X_test,
-                              self.y_input:y_test}
-            test_loss = sess.run(self.test_loss, feed_dict=test_feed_dict)
+            test_loss = 1000
             for i in range(self.num_epochs):
                 training_loss = self.run_training_epoch(sess, X_train,
                                                         y_train)
-                current_test_loss = sess.run(self.test_loss, feed_dict=test_feed_dict)
+                current_test_loss = self.evaluate_test_set(sess, X_test,
+                                                           y_test)
                 if current_test_loss < test_loss:
                     test_loss = current_test_loss
                     saver.save(sess, 'checkpoints/cnn.ckpt')
