@@ -9,3 +9,4 @@ epoch: 2 -- training loss:0.703 -- test loss: 0.696
 epoch: 3 -- training loss:0.703 -- test loss: 0.696
 epoch: 4 -- training loss:0.692 -- test loss: 0.682
 epoch: 5 -- training loss:0.688 -- test loss: 0.682
+epoch: 6 -- training loss:0.689 -- test loss: 0.681
