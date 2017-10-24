@@ -35,7 +35,7 @@ class RNN(object):
                                                  embedding_dim],
                                           name='x_input')
         elif tokenization=='char':
-            self.x_input = tf.placeholder(tf.float32,
+            self.x_input = tf.placeholder(tf.int32,
                                           shape=[None, max_sequence_length,
                                                  1],
                                           name='x_input')
@@ -201,7 +201,7 @@ class RNN(object):
         if self.tokenization=='word':
             x_input = self.x_input
         elif self.tokenization=='char':
-            identity = tf.constant(np.eye(self.embedding_dim))
+            identity = tf.constant(np.eye(self.embedding_dim), dtype=tf.float32)
             x_input = tf.gather_nd(identity, self.x_input)
         rnn_outputs = self.create_recurrent_layer(x_input,
                                                   self.length_input)
