@@ -28,10 +28,17 @@ class RNN(object):
         self.max_sequence_length = max_sequence_length
         self.learning_rate = learning_rate
         self.l2 = l2
-        self.x_input = tf.placeholder(tf.float32,
-                                      shape=[None, max_sequence_length,
-                                             embedding_dim],
-                                      name='x_input')
+        self.tokenization = tokenization
+        if tokenization=='word':
+            self.x_input = tf.placeholder(tf.float32,
+                                          shape=[None, max_sequence_length,
+                                                 embedding_dim],
+                                          name='x_input')
+        elif tokenization=='char':
+            self.x_input = tf.placeholder(tf.float32,
+                                          shape=[None, max_sequence_length,
+                                                 1],
+                                          name='x_input')
         self.y_input = tf.placeholder(tf.float32,
                                       [None, num_classes],
                                       name='y_input')
@@ -123,9 +130,13 @@ class RNN(object):
         return
 
     def encode_tweets_char_level(self, tweets):
-        vectorized_tweets = [[ord(tweet[i]) if i<len(tweet) else 0 for i
-                              in range(self.max_sequence_length)] for tweet
-                             in tweets]
+        def encode(letter):
+            if ord(letter) < self.embedding_dim:
+                return [ord(letter)]
+            return [0]
+        vectorized_tweets = [[encode(tweet[i]) if i < len(tweet) else [0]
+                              for i in range(self.max_sequence_length)]
+                             for tweet in tweets]
         return vectorized_tweets
 
     def encode_tweets_word2vec(self,tweets):
@@ -156,7 +167,6 @@ class RNN(object):
                                                 sequence_length=lengths,
                                                 time_major=False,
                                                 dtype=tf.float32)
-        output_list = tf.unstack(outputs, self.max_sequence_length, 1)
         batch_range = tf.range(tf.shape(outputs)[0])
         indices = tf.stack([batch_range, lengths-1], axis=1)
         last_rnn_output = tf.gather_nd(outputs, indices)
@@ -188,7 +198,12 @@ class RNN(object):
         return loss_operation
 
     def setup_graph(self):
-        rnn_outputs = self.create_recurrent_layer(self.x_input,
+        if self.tokenization=='word':
+            x_input = self.x_input
+        elif self.tokenization=='char':
+            identity = tf.constant(np.eye(self.embedding_dim))
+            x_input = tf.gather_nd(identity, self.x_input)
+        rnn_outputs = self.create_recurrent_layer(x_input,
                                                   self.length_input)
         self.logits = self.add_full_layer(rnn_outputs)
         self.training_cost = self.get_training_cost(self.logits,
@@ -358,7 +373,7 @@ class CNN(object):
     def __init__(self, sequence_length, num_classes, embedding_size,
                  filter_sizes, num_filters, learning_rate=.01,
                  batch_size=100, num_epochs=1000,
-                 dropout_keep_prob=.6, store_data=True):
+                 dropout_keep_prob=.6, tokenization='word'):
         self.sequence_length = sequence_length
         self.num_classes = num_classes
         self.num_filters = num_filters
@@ -377,9 +392,38 @@ class CNN(object):
         self.num_epochs = num_epochs
         self.embedding_size = embedding_size
         self.dropout_keep_prob = dropout_keep_prob
-        self.store_data = store_data
-        self.create_word_dict()
+        if tokenization=='word':
+            self.create_word_dict()
+            self.encode_tweets = self.encode_tweets_word2vec
+        elif tokenization=='char':
+            self.load_tweets_char_level()
+            self.encode_tweets = self.encode_tweets_char_level
+        else:
+            raise Exception('Invalid option for tokenization'+
+                            'valid options are char and word')
         self.setup_graph()
+
+    def load_tweets_char_level(self):
+        dataframe = pd.read_csv('../data/training.1600000.processed.noemoticon.csv',
+                                encoding='iso8859', header=None,
+                                names=['sentiment', 'id', 'time', 'query', 'user',
+                                       'text'])
+        labels = dataframe.sentiment/4
+        tweets = dataframe.text
+        tweets, labels = shuffle(tweets, labels)
+        tweets = [tweet[:self.sequence_length] for tweet in tweets]
+        lengths = [len(tweet) for tweet in tweets]
+
+        tokenized_tweets = [tweet for tweet, length in zip(tweets, lengths)
+                            if length > 0]
+        labels = [label for label, length in zip(labels, lengths)
+                  if length > 0]
+        lengths = [length for length in lengths if length > 0]
+
+        self.tweets = tweets
+        self.labels = labels
+        self.lengths = lengths
+        return
 
     def create_word_dict(self):
         """Loads the data from the emoticon labeled tweets, and then processes
@@ -431,7 +475,7 @@ class CNN(object):
         self.labels = labels
         return
 
-    def encode_tweets(self,tweets):
+    def encode_tweets_word2vec(self,tweets):
         tokenized_tweets = [[list(self.word_to_vec[word]) for word in tweet if
                              word in self.word_to_vec.vocab] for tweet in
                             tweets]
@@ -440,6 +484,12 @@ class CNN(object):
                              range(self.sequence_length)] for tweet in
                             tokenized_tweets]
         return tokenized_tweets
+
+    def encode_tweets_char_level(self, tweets):
+        vectorized_tweets = [[ord(tweet[i]) if i<len(tweet) else 0 for i
+                              in range(self.sequence_length)] for tweet
+                             in tweets]
+        return vectorized_tweets
 
     def encode_labels(self, labels):
         labels = [[0, 1] if label else [1, 0] for label in labels]
