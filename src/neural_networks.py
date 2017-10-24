@@ -356,7 +356,7 @@ class CNN(object):
     num_filters: list(int), number of filters per filter size
     """
     def __init__(self, sequence_length, num_classes, embedding_size,
-                 filter_sizes, num_filters, learning_rate=.001,
+                 filter_sizes, num_filters, learning_rate=.01,
                  batch_size=100, num_epochs=1000,
                  dropout_keep_prob=.6, store_data=True):
         self.sequence_length = sequence_length
@@ -541,7 +541,7 @@ class CNN(object):
             batch_y = self.encode_labels(batch_y)
             feed_dict = {self.x_input:batch_x,
                          self.y_input:batch_y}
-            loss, _ = sess.run(self.test_loss,
+            loss = sess.run(self.test_loss,
                                feed_dict=feed_dict)
             losses.append(loss)
         return np.mean(losses)
@@ -569,6 +569,9 @@ class CNN(object):
                                    'training loss:{:.3f} -- '+
                                    'test loss: {:.3f}')
                 print(training_string.format(i, training_loss, test_loss))
+                with open('training_log.txt','a') as f:
+                    f.write(training_string.format(i, training_loss, test_loss))
+                    f.write('\n')
 
     def predict_proba(self, X):
         """predicts the probability of positive or negative
