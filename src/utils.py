@@ -5,6 +5,8 @@ import re
 import numpy as np
 from bs4 import BeautifulSoup
 import multiprocessing
+from nltk.stem.porter import PorterStemmer
+import nltk
 
 
 def parrallel_map(function, iterable, n_jobs=8):
@@ -86,6 +88,29 @@ def tokenize(tweet):
     tweet = clean_text(tweet)
     tweet, emoticons = _remove_emoticons(tweet)
     words = re.findall(r"(?u)\b\w[\w']+\b", tweet.lower())
+    for i in emoticons:
+        words.append(i)
+    return words
+
+
+def tokenize_and_stem(tweet):
+    """tokenizes and stems a tweet preserving
+    emoticons
+
+    Parameters:
+    -----------
+    tweet: str
+        contents of a given tweet
+
+    Returns:
+    --------
+    list of stemmed tokens
+    """
+    tweet = clean_text(tweet)
+    tweet, emoticons = _remove_emoticons(tweet)
+    words = re.findall(r"(?u)\b\w[\w']+\b", tweet.lower())
+    porter_stemmer = PorterStemmer()
+    words = [porter_stemmer.stem(word) for word in words]
     for i in emoticons:
         words.append(i)
     return words
