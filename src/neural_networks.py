@@ -90,7 +90,7 @@ class RNN(object):
         self.word_to_vec = word_to_vec
         self.tweets = tweets
         self.labels = labels
-        self.length = lengths
+        self.lengths = lengths
         return
 
     def encode_tweets(self,tweets):
@@ -163,33 +163,35 @@ class RNN(object):
         self.train_op = self.get_training_operation(self.test_cost)
         self.probs = tf.nn.softmax(self.logits)
 
-    def minibatches(self, X, y):
+    def minibatches(self, X, y, length):
         for i in range(len(X)//self.batch_size):
             lower = i*self.batch_size
             upper = (i+1)*self.batch_size
-            yield X[lower:upper], y[lower:upper]
+            yield X[lower:upper], y[lower:upper], length[lower:upper]
 
-    def run_training_epoch(self, sess, X, y):
+    def run_training_epoch(self, sess, X, y, length):
         X, y = shuffle(X, y)
         losses = []
-        for batch_x, batch_y in self.minibatches(X, y):
+        for batch_x, batch_y, batch_length in self.minibatches(X, y, length):
             batch_x = self.encode_tweets(batch_x)
             batch_y = self.encode_labels(batch_y)
             feed_dict = {self.x_input:batch_x,
-                         self.y_input:batch_y}
+                         self.y_input:batch_y,
+                         self.length_input:batch_length}
             loss, _ = sess.run((self.training_cost, self.train_op),
                                feed_dict=feed_dict)
             losses.append(loss)
         return np.mean(losses)
 
-    def evaluate_test_set(self, sess, X, y):
+    def evaluate_test_set(self, sess, X, y, length):
         X, y = shuffle(X, y)
         losses = []
-        for batch_x, batch_y in self.minibatches(X, y):
+        for batch_x, batch_y, batch_length in self.minibatches(X, y, length):
             batch_x = self.encode_tweets(batch_x)
             batch_y = self.encode_labels(batch_y)
             feed_dict = {self.x_input:batch_x,
-                         self.y_input:batch_y}
+                         self.y_input:batch_y,
+                         self.length_input:batch_length}
             loss = sess.run(self.get_test_cost,
                                feed_dict=feed_dict)
             losses.append(loss)
@@ -199,18 +201,20 @@ class RNN(object):
         """Trains the graph using holdout validation to ensure that the test
         error is decreasing
         """
-        X_train, X_test, y_train, y_test = train_test_split(self.tweets,
-                                                            self.labels,
-                                                            test_size=.2)
+        X_train, X_test, y_train, y_test, length_train, length_test=\
+            train_test_split(self.tweets, self.labels, self.lengths,
+                             test_size=.2)
         saver = tf.train.Saver()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             test_loss = 1000
             for i in range(self.num_epochs):
                 training_loss = self.run_training_epoch(sess, X_train,
-                                                        y_train)
+                                                        y_train,
+                                                        length_train)
                 current_test_loss = self.evaluate_test_set(sess, X_test,
-                                                           y_test)
+                                                           y_test,
+                                                           length_test)
                 if current_test_loss < test_loss:
                     test_loss = current_test_loss
                     saver.save(sess, 'checkpoints/rnn.ckpt')
