@@ -15,9 +15,9 @@ class RNN(object):
     recurrent neural network
     """
 
-    def __init__(self, num_epochs, embedding_dim=300, batch_size=100,
-                 cell_type='rnn', n_hidden=100, num_classes=2,
-                 learning_rate=.01, max_sequence_length=20,
+    def __init__(self, num_epochs, tokenization='word', embedding_dim=300,
+                 batch_size=100, cell_type='rnn', n_hidden=100,
+                 num_classes=2, learning_rate=.01, max_sequence_length=20,
                  l2=.001):
         self.num_epochs = num_epochs
         self.embedding_dim = embedding_dim
@@ -39,8 +39,38 @@ class RNN(object):
                                            [None],
                                            name='length_input')
 
-        self.create_word_dict()
+        if tokenization=='word':
+            self.create_word_dict()
+            self.encode_tweets = self.encode_tweets_word2vec
+        elif tokenization=='char':
+            self.load_tweets_char_level()
+            self.encode_tweets = self.encode_tweets_char_level
+        else:
+            raise Exception('Invalid tokenization parameter,'+
+                            'valid options are word or char')
         self.setup_graph()
+
+    def load_tweets_char_level(self):
+        dataframe = pd.read_csv('../data/training.1600000.processed.noemoticon.csv',
+                                encoding='iso8859', header=None,
+                                names=['sentiment', 'id', 'time', 'query', 'user',
+                                       'text'])
+        labels = dataframe.sentiment/4
+        tweets = dataframe.text
+        tweets, labels = shuffle(tweets, labels)
+        tweets = [tweet[:self.max_sequence_length] for tweet in tweets]
+        lengths = [len(tweet) for tweet in tweets]
+
+        tokenized_tweets = [tweet for tweet, length in zip(tweets, lengths)
+                            if length > 0]
+        labels = [label for label, length in zip(labels, lengths)
+                  if length > 0]
+        lengths = [length for length in lengths if length > 0]
+
+        self.tweets = tweets
+        self.labels = labels
+        self.lengths = lengths
+        return
 
     def create_word_dict(self):
         """Loads the data from the emoticon labeled tweets, and then processes
@@ -85,7 +115,6 @@ class RNN(object):
                   if length > 0]
         lengths = [length for length in lengths if length > 0]
 
-
         word_to_vec = Word2Vec(tokenized_tweets, size=self.embedding_dim).wv
         self.word_to_vec = word_to_vec
         self.tweets = tweets
@@ -93,7 +122,13 @@ class RNN(object):
         self.lengths = lengths
         return
 
-    def encode_tweets(self,tweets):
+    def encode_tweets_char_level(self, tweets):
+        vectorized_tweets = [[ord(tweet[i]) if i<len(tweet) else 0 for i
+                              in range(self.max_sequence_length)] for tweet
+                             in tweets]
+        return vectorized_tweets
+
+    def encode_tweets_word2vec(self,tweets):
         tokenized_tweets = [[list(self.word_to_vec[word]) for word in tweet if
                              word in self.word_to_vec.vocab] for tweet in
                             tweets]
@@ -192,7 +227,7 @@ class RNN(object):
             feed_dict = {self.x_input:batch_x,
                          self.y_input:batch_y,
                          self.length_input:batch_length}
-            loss = sess.run(self.get_test_cost,
+            loss = sess.run(self.test_cost,
                                feed_dict=feed_dict)
             losses.append(loss)
         return np.mean(losses)
