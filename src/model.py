@@ -4,6 +4,7 @@ from src import utils
 import pickle
 import pandas as pd
 from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
@@ -25,11 +26,40 @@ class TweetPredictor(object):
     _best_estimator:
         best estimator found by grid_search
     """
-    def __init__(self, predictor=LogisticRegression()):
-        self.predictor = predictor
+    def __init__(self, model_type):
+        self.model_type = model_type
         tfidf = TfidfVectorizer(stop_words='english',
                                 tokenizer=utils.tokenize)
-        self.pipeline = Pipeline([('tfidf', tfidf), ('predictor', predictor)])
+        self.pipeline = self.create_pipeline(model_type)
+        self.param_grid = self.create_param_grid(model_type)
+
+    def create_pipeline(self, model_type):
+        if model_type=='stemmed_lr':
+            tfidf = TfidfVectorizer(stop_words='english',
+                                    tokenizer=utils.tokenize_and_stem)
+            predictor = LogisticRegression()
+        elif model_type=='unstemmed_lr':
+            tfidf = TfidfVectorizer(stop_words='english',
+                                    tokenizer=utils.tokenize)
+            predictor = LogisticRegression()
+        elif model_type == 'stemmed_rf':
+            tfidf = TfidfVectorizer(stop_words='english',
+                                    tokenizer=utils.tokenize_and_stem)
+            predictor = RandomForestClassifier(n_estimators=10000)
+
+        pipeline = Pipeline([('tfidf', tfidf), ('predictor', predictor)])
+        return pipeline
+
+    def create_param_grid(self, model_type):
+        if model_type == 'stemmed_lr' or model_type == 'unstemmed_lr':
+            param_grid = {'tfidf__min_df': [.01, .05, .1],
+                          'tfidf__max_df': [1., .9, .8, .7],
+                          'predictor__C': [2**n for n in range(-3, 3)]}
+        elif model_type == 'stemmed_rf':
+            param_grid = {'tfidf__min_df': [.01, .05, .1],
+                          'tfidf__max_df': [1., .9, .8, .7],
+                          'predictor__max_depth': [None, 3, 5, 7]}
+        return param_grid
 
     def load_data(self, source='kaggle'):
         """Loads the data in, processes it into a standard form
@@ -66,7 +96,7 @@ class TweetPredictor(object):
         tweets = df.text
         return shuffle(tweets, labels)
 
-    def train(self, verbose=False, source='kaggle'):
+    def train(self, source='kaggle'):
         """uses the loaded data to run a grid search for the best
         parameters, and then stores the best estimator as an
         instance variable.
@@ -77,29 +107,31 @@ class TweetPredictor(object):
         source: str, options = ['kaggle','emoticon']
             source of tweets and labels to use
         """
-        params = {'tfidf__min_df': [.01, .05, .1],
-                  'tfidf__max_df': [1., .9, .8, .7],
-                  'predictor__C': [2**n for n in range(-3, 3)]}
-        grid_search = GridSearchCV(self.pipeline, params,
+        grid_search = GridSearchCV(self.pipeline, self.param_grid,
                                    scoring='neg_log_loss',
                                    n_jobs=-1)
         tweets, labels = self.load_data(source)
         grid_search.fit(tweets, labels)
         self.grid_search = grid_search
-        if verbose:
-            cv_res = grid_search.cv_results_
-            print('           :   C   : min_df  : max_df  ')
-            for score, std, params in zip(cv_res['mean_test_score'],
-                                          cv_res['std_test_score'],
-                                          cv_res['params']):
-                print('{:.3f}+/-{:3f} : {} : {} : {}'.format(
+        cv_res = grid_search.cv_results_
+        results = '           :   C   : min_df  : max_df  '
+        for score, std, params in zip(cv_res['mean_test_score'],
+                                      cv_res['std_test_score'],
+                                      cv_res['params']):
+            results += '\n{:.3f}+/-{:3f} : {} : {} : {}'.format(
                         score, std, params['predictor__C'],
                         params['tfidf__min_df'],
-                        params['tfidf__max_df']))
-            print(grid_search.best_params_)
-            print(grid_search.best_score_)
+                        params['tfidf__max_df'])
+        results += '\n\ncv_best results:'
+        results += '{}'.format(grid_search.best_params_)
+        results += '{}'.format(grid_search.best_score_)
+
+        with open('cv_results_{}.txt'.format(self.model_type), 'w') as f:
+            f.write(results)
+        print(grid_search.best_params_)
+        print(grid_search.best_score_)
         self._estimator = grid_search.best_estimator_
-        self._estimator.fit(tweets,labels)
+        self._estimator.fit(tweets, labels)
 
     def predict_proba(self, tweets):
         """Given a collection of tweets, predicts the probability
@@ -121,7 +153,7 @@ class TweetPredictor(object):
         return self._estimator.predict_proba(tweets)
 
 if __name__ == '__main__':
-    model = TweetPredictor()
+    model = TweetPredictor('stemmed_lr')
     with open('models/untrained_emoticon_lr_model.pk','wb') as f:
         pickle.dump(model,f)
     model.train(verbose=True, source='emoticon')
