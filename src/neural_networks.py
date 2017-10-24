@@ -63,7 +63,7 @@ class RNN(object):
                                 names=['sentiment', 'id', 'time', 'query', 'user',
                                        'text'])
         labels = dataframe.sentiment/4
-        tweets = dataframe.text
+        tweets = dataframe.text.map(utils.clean_text_for_rnn)
         tweets, labels = shuffle(tweets, labels)
         tweets = [tweet[:self.max_sequence_length] for tweet in tweets]
         lengths = [len(tweet) for tweet in tweets]
