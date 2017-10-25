@@ -540,10 +540,11 @@ ul.style1 {
 	margin: 0px;
 	padding: 0px 0px 0px 0px;
 	list-style: none;
+	display: block;
 }
 
 ul.style1 li {
-	display: inline-block;
+	display: block;
 	padding: 1em 0em;
 	border-top: 1px solid #E6E6E6;
 	line-height: 160%;

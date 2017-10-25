@@ -40,7 +40,7 @@
 						<ul>
 							<li class="active"><a href="index.html">Homepage</a></li>
 							<li><a href="https://github.com/mike-camp/Twitter-Sentiment-Analysis">github</a></li>
-							<li><a href="about.html">about</a></li>
+							<li><a href="about.html">about me</a></li>
 						</ul>
 					</nav>
 				</div>
@@ -50,55 +50,20 @@
 			<div id="page">
 				<div class="container">
 					<div class="row">
-						<div class="3u">
-							<section id="sidebard2">
-								<header>
-									<h2>Topics</h2>
-								</header>
-								<ul class="style3">
-									<li class="first">
-										<p class="date"><a href="daily_trends.html">Daily Trends</a></p>
-										<p><a href="#">Trending topics include Gregg Popovich, Trump, and take a knee.</a></p>
-									</li>
-									<li>
-										<p class="date"><a href="politics.html">Politics</a></p>
-										<p><a href="#">How politicians are viewed on Twitter.</a></p>
-									</li>
-									<li>
-										<p class="date"><a href="sports.html">Sports</a> </p>
-										<p><a href="#">Current sports teams popularity by state.</a></p>
-									</li>
-								</ul>
-							</section>
-						</div>
-						
-						
-						<div class="9u skel-cell-important">
+						<div class="12u">
 							<section id="content" >
 								<header>
-									<h2>Daily Trends</h2>
+									<h2>How it works</h2>
 								</header>
-                <p>
-                  <h2><strong> {{ topic_1 }} -- Sentiment: {{ topic_score_1 }}</strong> </h2>
-                  <object width="700" height="400" data="maps/daily_topics_1.html"> 
-                    Your browser doesn't support object 
-                  </object>
-                </p>
-                
-                <p>
-                  <h2><strong> {{ topic_2 }} -- Sentiment: {{ topic_score_2 }}</strong> </h2>
-                  <object width="700" height="400" data="maps/daily_topics_2.html"> 
-                    Your browser doesn't support object 
-                  </object>
-                </p>
-
-                <p>
-                  <h2><strong> {{ topic_3  }} -- Sentiment: {{ topic_score_3 }}</strong> </h2>
-                  <object width="700" height="400" data="maps/daily_topics_3.html"> 
-                    Your browser doesn't support object 
-                  </object>
-                </p>
-
+								<p><strong>Finding topics<a id="topics"></a></strong></p>
+                <p> Using the twitter API, and the python wrapper tweepy, every day the current trends for the United States are queried.   Next, over the next 3 hours, every topic is streamed into a NOSQL database for analysis.   </p>
+                <p> After the tweets have been collected, the tweets are then analyzed for the average sentiment along with the states mentioned in the user reported locations.  These are then synthesized into visualizations using Folium, a python library that creates leaflet.js maps.</p>
+                <p><strong>Analyzing sentiment<a id='sentiment'></a></strong></p>
+                <p> To analyze the sentiment, the text of the tweet is first cleaned using regular expessions and beautiful soup to remove weblinks, html formatting, and other usernames.   The text is then tokenized and stemmed using nltk's porter stemmer.   </p>
+                <p> The text is then turned into vectors using a sklearns TFIDF vectorizer, and predictions are made on these vectors using regularized logistic regression, which was found to outperform random forests, and convolutional neural networks.  </p>
+                <p> This algorithm was trained on a dataset of 1.6 million tweets found by extracting tweets with emoticons, which were labeled as positive or negative based on the emoticon present.   </p>
+                <p><strong>Interactive visualizations<a name="visualizations"></a></strong></p>
+                <p> The visualizations were created using Folium, a python library which creates leaflet.js maps within python.  </p>
               </section>
 						</div>
 					</div>

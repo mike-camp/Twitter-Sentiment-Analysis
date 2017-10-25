@@ -72,6 +72,15 @@ def clean_text(tweet):
     return tweet.strip()
 
 
+def clean_text_for_rnn(tweet):
+    tweet = _HTMLEntitiesToUnicode(tweet)
+    # remove web addresses
+    tweet = re.sub(r'(?:(https?://)|(www\.))(?:\S+)?', '_', tweet)
+    # replace usernames with _
+    tweet = re.sub(r'@\w{1,15}', '_', tweet)
+    return tweet.strip()
+
+
 def tokenize(tweet):
     """ tokenizes a tweet preserving
     emoticons

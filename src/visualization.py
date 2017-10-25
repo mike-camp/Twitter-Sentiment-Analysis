@@ -49,9 +49,10 @@ def visualize_count(df):
     avg_sentiment = df.sentiment.mean()
     df_grouped = df[['sentiment', 'state']].groupby(['state']).count()
     gdf = gpd.read_file('data/cb_2016_us_state_20m.dbf')
-    merged_df = gdf.merge(df_grouped, left_on='NAME', right_index=True)
+    merged_df = gdf.merge(df_grouped, how='left', left_on='NAME',
+                          right_index=True)
     merged_df = merged_df.fillna(0)
-    data_df = merged_df[['NAME', 'sentiment']]
+    data_df = merged_df[['NAME', 'sentiment']].fillna(0)
     geo_str = merged_df[['NAME', 'geometry']].to_json()
     map1 = folium.Map(location=[+37, -100],
                       tiles='Cartodb Positron',
