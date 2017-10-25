@@ -194,7 +194,10 @@ class RNN(object):
 
     def get_training_operation(self, cost):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        loss_operation = optimizer.minimize(cost)
+        gvs = optimizer.compute_gradients(cost)
+        capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var)
+                      for grad, var in gvs]
+        loss_operation = optimizer.apply_gradients(capped_gvs)
         return loss_operation
 
     def setup_graph(self):
