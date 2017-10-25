@@ -23,7 +23,7 @@
 		<!--[if lte IE 8]><link rel="stylesheet" href="css/ie/v8.css" /><![endif]-->
 		<!--[if lte IE 9]><link rel="stylesheet" href="css/ie/v9.css" /><![endif]-->
 	</head>
-	<body class="homepage">
+	<body>
 		<div id="wrapper">
 			
 			<!-- Header -->
@@ -50,53 +50,27 @@
 			<div id="page">
 				<div class="container">
 					<div class="row">
-						<div class="3u">
-							<section id="sidebar1">
-								<header>
-									<h2>Topics</h2>
-								</header>
-								<ul class="style3">
-									<li class="first">
-										<p class="date"><a href="daily_trends.html">Daily Trends</a></p>
-										<p><a href="#">Trending topics include Gregg Popovich, Trump, and take a knee.</a></p>
-									</li>
-									<li>
-										<p class="date"><a href="politics.html">Politics</a></p>
-										<p><a href="#">How politicians are viewed on Twitter.</a></p>
-									</li>
-									<li>
-										<p class="date"><a href="sports.html">Sports</a> </p>
-										<p><a href="#">Current sports teams popularity by state.</a></p>
-									</li>
-								</ul>
-							</section>
-						</div>
-						<div class="6u skel-cell-important">
+						<div class="12u">
 							<section id="content" >
-								<header>
-									<h2>Twitter analysis</h2>
-								</header>
-								<p>In todays world, trends appear and disappear in a matter of days or even hours.   Twitter is often at the forefront of this, providing a rich data source containing news announcements, advice, memes, and politics.  By analyzing twitter data, your company can find out about the next trend before it blows up.    </p>
-                <p>However, not all trends are created equal.  If #RollTide because Alabama just won a game, then advertising based on this trend would be a good decision.  However #RollTide could also be trending due to a major scandal in ncaa football, in which advertizing based on this could be disastrous.  </p>
-                <p>Location matters.  Referencing #RollTide might be a good business decision in Alabama, but a horrible business decision in Louisiana.  This website was created to address this challenge.   By analyzing current tweets by not only sentiment, but also location, you can now adjust marketing strategies in real time. </p>  
-							</section>
-						</div>
-						<div class="3u">
-							<section id="sidebard2">
 								<header>
 									<h2>How it works</h2>
 								</header>
-								<ul class="style1">
-									<li><a href="how_it_works.html#topics">Finding Topics</a></li>
-									<li><a href="how_it_works.html#sentiment">Analyzing Sentiment</a></li>
-									<li><a href="how_it_works.html#visualizations">Interactive Visualizations</a></li>
-								</ul>
-							</section>
+								<p><strong>Finding topics<a id="topics"></a></strong></p>
+                <p> Using the twitter API, and the python wrapper tweepy, every day the current trends for the United States are queried.   Next, over the next 3 hours, every topic is streamed into a NOSQL database for analysis.   </p>
+                <p> After the tweets have been collected, the tweets are then analyzed for the average sentiment along with the states mentioned in the user reported locations.  These are then synthesized into visualizations using Folium, a python library that creates leaflet.js maps.</p>
+                <p><strong>Analyzing sentiment<a id='sentiment'></a></strong></p>
+                <p> To analyze the sentiment, the text of the tweet is first cleaned using regular expessions and beautiful soup to remove weblinks, html formatting, and other usernames.   The text is then tokenized and stemmed using nltk's porter stemmer.   </p>
+                <p> The text is then turned into vectors using a sklearns TFIDF vectorizer, and predictions are made on these vectors using regularized logistic regression, which was found to outperform random forests, and convolutional neural networks.  </p>
+                <p> This algorithm was trained on a dataset of 1.6 million tweets found by extracting tweets with emoticons, which were labeled as positive or negative based on the emoticon present.   </p>
+                <p><strong>Interactive visualizations<a name="visualizations"></a></strong></p>
+                <p> The visualizations were created using Folium, a python library which creates leaflet.js maps within python.  </p>
+              </section>
 						</div>
 					</div>
 
 				</div>	
 			</div>
+
 
 			<!-- Footer -->
 			<div id="footer">
