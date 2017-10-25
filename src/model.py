@@ -9,6 +9,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 from sklearn.utils import shuffle
+from sklearn.decomposition import NMF
+from sklearn.decomposition import LatentDirichletAllocation
 
 
 class TweetPredictor(object):
@@ -46,8 +48,36 @@ class TweetPredictor(object):
             tfidf = TfidfVectorizer(stop_words='english',
                                     tokenizer=utils.tokenize_and_stem)
             predictor = RandomForestClassifier(n_estimators=10000)
+        elif model_type == 'stemmed_nmf_lr':
+            return self.create_three_stage_pipeline(model_type)
+        elif model_type == 'stemmed_nmf_rf':
+            return self.create_three_stage_pipeline(model_type)
+        elif model_type == 'stemmed_lda_lr':
+            return self.create_three_stage_pipeline(model_type)
+        elif model_type == 'unstemmed_lda_rf':
+            return self.create_three_stage_pipeline(model_type)
 
         pipeline = Pipeline([('tfidf', tfidf), ('predictor', predictor)])
+        return pipeline
+
+    def create_three_stage_pipeline(self, model_type):
+        tfidf = TfidfVectorizer(stop_words='english',
+                                tokenizer=utils.tokenize_and_stem)
+        if model_type == 'stemmed_nmf_lr':
+            feature_reducer = NMF()
+            predictor = LogisticRegression()
+        elif model_type == 'stemmed_nmf_rf':
+            feature_reducer = NMF()
+            predictor = RandomForestClassifier(n_estimators=10000)
+        elif model_type == 'stemmed_lda_lr':
+            feature_reducer = LatentDirichletAllocation()
+            predictor = LogisticRegression()
+        elif model_type == 'stemmed_lda_rf':
+            feature_reducer = LatentDirichletAllocation()
+            predictor = RandomForestClassifier(n_estimators=10000)
+        pipeline = Pipeline([('tfidf', tfidf),
+                             ('feature_reducer', feature_reducer),
+                             ('predictor', predictor)])
         return pipeline
 
     def create_param_grid(self, model_type):
@@ -58,6 +88,14 @@ class TweetPredictor(object):
         elif model_type == 'stemmed_rf':
             param_grid = {'tfidf__min_df': [.01, .05, .1],
                           'tfidf__max_df': [1., .9, .8, .7],
+                          'predictor__max_depth': [None, 3, 5, 7]}
+        elif model_type == 'stemmed_nmf_lr' or model_type == 'stemmed_lda_lr':
+            param_grid = {'feature_reducer__n_components':[100, 200,
+                                                           500, 1000],
+                          'predictor__C': [2**n for n in range(-1, 4, 2)]}
+        elif model_type == 'stemmed_nmf_rf' or model_type == 'stemmed_lda_rf':
+            param_grid = {'feature_reducer__n_components':[100, 200,
+                                                           500, 1000],
                           'predictor__max_depth': [None, 3, 5, 7]}
         return param_grid
 
@@ -122,6 +160,7 @@ class TweetPredictor(object):
                         score, std, params['predictor__C'],
                         params['tfidf__min_df'],
                         params['tfidf__max_df'])
+            print(results.split('\n')[-1])
         results += '\n\ncv_best results:'
         results += '{}'.format(grid_search.best_params_)
         results += '{}'.format(grid_search.best_score_)
