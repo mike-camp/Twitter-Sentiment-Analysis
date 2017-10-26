@@ -86,6 +86,10 @@ def create_daily_topic_maps(n_hours):
         template = jinja2.Template(f.read())
     with open('website/daily_trends.html', 'w') as f:
         f.write(template.render(**jinja_params))
+    with open('../website/index_template.html','r') as f:
+        template = jinja2.Template(f.read())
+    with open('website/index.html','w') as f:
+        f.write(template.render(**jinja_params))
 
 
 def create_topic_maps(topic_list, topic_name, n_hours=None):
