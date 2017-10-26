@@ -72,7 +72,7 @@ def create_daily_topic_maps(n_hours):
     table, _, daily_topics = twitter_scraper.stream_trends(n_trends=3,
                                                            n_hours=n_hours)
     tweet_processor = process_tweets.TweetProcessor(
-        'models/emoticon_lr_model.pk')
+        'models/stemmed_lr.pk')
     df_list = [tweet_processor.process_database(table, topics=[topic])
                                                 for topic in daily_topics]
     jinja_params = {}
@@ -94,7 +94,7 @@ def create_topic_maps(topic_list, topic_name, n_hours=None):
                                           n_hours=n_hours)
 
     tweet_processor = process_tweets.TweetProcessor(
-        'models/emoticon_lr_model.pk')
+        'models/stemmed_lr.pk')
     df_list = [tweet_processor.process_database(table, topics=[topic])
                for topic in topic_list]
     for topic,dataframe in zip(topic_list, df_list):
