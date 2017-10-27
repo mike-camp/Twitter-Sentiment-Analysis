@@ -207,6 +207,8 @@ def stream_topics(topic_list, topic_name, n_hours=None):
 def stream_emoticons(n_hours=None):
     emoticon_list = [':)', ':(', '☺️','🙂',
                      '😀', '😃' '☹️', '🙁', '😠']
+    emoticon_list = [x.encode('ascii', 'xmlcharrefreplace') for x in
+                     emoticon_list]
     table = generate_mongo_table_connection('emoticons')
     twitter_stream = create_emoticon_stream(table, n_hours)
     twitter_stream.filter(emoticon_list)
