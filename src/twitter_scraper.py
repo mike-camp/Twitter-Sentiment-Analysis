@@ -6,6 +6,7 @@ from tweepy.auth import OAuthHandler
 from tweepy.streaming import StreamListener
 from tweepy import Stream
 from pymongo import MongoClient
+from src.process_tweets import TweetProcessor
 US_WOEID = 23424977
 
 
@@ -52,6 +53,31 @@ class CustomStreamListener(StreamListener):
         raise Exception(status_code)
 
 
+class EmoticonStreamListener(StreamListener):
+    def __init__(self, table, n_hours=None):
+        super(EmoticonStreamListener, self).__init__()
+        self.begin_time = datetime.datetime.now()
+        self.n_hours = n_hours
+        self.table = table
+        self.tweet_processor = TweetProcessor(None)
+
+    def on_status(self, status):
+        json = status._json
+        if not 'location' in json['user']:
+            return True
+        if not self.tweet_processor.find_state(json):
+            return True
+        self.table.insert_one(status._json)
+        now = datetime.datetime.now()
+        # test for exit if n_hours has been set
+        if self.n_hours is None:
+            return True
+        if (now - self.begin_time).seconds > 60*60*self.n_hours:
+            return False
+    def on_error(self, status_code):
+        raise Exception(status_code)
+
+
 def create_twitter_stream(table, n_hours=None):
     """Creates a twitter stream object that will insert queries into
     object and will terminate in n_hours
@@ -71,6 +97,28 @@ def create_twitter_stream(table, n_hours=None):
     stream_listener = CustomStreamListener(table, n_hours=n_hours)
     twitter_stream = Stream(auth, stream_listener)
     return twitter_stream
+
+
+def create_emoticon_stream(table, n_hours=None):
+    """Creates a twitter stream object that will insert queries into
+    object and will terminate in n_hours
+
+    Parameters:
+    -----------
+    table: connection to mongodb table
+    n_hours: number of hours to run before termination, default = None
+
+    Returns:
+    --------
+    tweepy Stream object
+    """
+    auth = OAuthHandler(TWITTER.CONSUMER_KEY, TWITTER.CONSUMER_SECRET)
+    auth.set_access_token(TWITTER.ACCESS_TOKEN, TWITTER.ACCESS_SECRET)
+
+    stream_listener = EmoticonStreamListener(table, n_hours=n_hours)
+    twitter_stream = Stream(auth, stream_listener)
+    return twitter_stream
+
 
 
 def generate_mongo_table_connection(table_name):
@@ -153,4 +201,13 @@ def stream_topics(topic_list, topic_name, n_hours=None):
     table = generate_mongo_table_connection(topic_name)
     twitter_stream = create_twitter_stream(table, n_hours)
     twitter_stream.filter(track=topic_list)
+    return table
+
+
+def stream_emoticons(n_hours=None):
+    emoticon_list = [':)', ':(', '☺️','🙂',
+                     '😀', '😃' '☹️', '🙁', '😠']
+    table = generate_mongo_table_connection('emoticons')
+    twitter_stream = create_emoticon_stream(table, n_hours)
+    twitter_stream.filter(emoticon_list)
     return table
