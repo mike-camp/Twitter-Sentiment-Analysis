@@ -60,7 +60,7 @@
                 <p> After the tweets have been collected, the tweets are then analyzed for the average sentiment along with the states mentioned in the user reported locations.  These are then synthesized into visualizations using Folium, a python library that creates leaflet.js maps.</p>
                 <p><strong>Analyzing sentiment<a id='sentiment'></a></strong></p>
                 <p> To analyze the sentiment, the text of the tweet is first cleaned using regular expressions and beautiful soup to remove weblinks, html formatting, and other usernames.   The text is then tokenized and stemmed using nltk's porter stemmer.   </p>
-                <p> The text is then turned into vectors using a sklearns TFIDF vectorizer, and predictions are made on these vectors using regularized logistic regression, which was found to outperform random forests, and convolutional neural networks.  </p>
+                <p> The text is then turned into vectors using a sklearn's TFIDF vectorizer, and predictions are made on these vectors using regularized logistic regression, which was found to outperform random forests, and convolutional neural networks.  </p>
                 <p> This algorithm was trained on a dataset of 1.6 million tweets found by extracting tweets with emoticons, which were labeled as positive or negative based on the emoticon present.   </p>
                 <p><strong>Interactive visualizations<a name="visualizations"></a></strong></p>
                 <p> The visualizations were created using Folium, a python library which creates leaflet.js maps within python.  </p>
