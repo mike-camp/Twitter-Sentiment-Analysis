@@ -1,0 +1,27 @@
+           :   C   : min_df  : max_df  
+{'tfidf__max_df': 1.0, 'tfidf__min_df': 0.01}
+	-0.592+/-0.001881
+{'tfidf__max_df': 1.0, 'tfidf__min_df': 0.05}
+	-0.676+/-0.000730
+{'tfidf__max_df': 1.0, 'tfidf__min_df': 0.1}
+	-0.693+/-0.000000
+{'tfidf__max_df': 0.9, 'tfidf__min_df': 0.01}
+	-0.592+/-0.001881
+{'tfidf__max_df': 0.9, 'tfidf__min_df': 0.05}
+	-0.676+/-0.000730
+{'tfidf__max_df': 0.9, 'tfidf__min_df': 0.1}
+	-0.693+/-0.000000
+{'tfidf__max_df': 0.8, 'tfidf__min_df': 0.01}
+	-0.592+/-0.001881
+{'tfidf__max_df': 0.8, 'tfidf__min_df': 0.05}
+	-0.676+/-0.000730
+{'tfidf__max_df': 0.8, 'tfidf__min_df': 0.1}
+	-0.693+/-0.000000
+{'tfidf__max_df': 0.7, 'tfidf__min_df': 0.01}
+	-0.592+/-0.001881
+{'tfidf__max_df': 0.7, 'tfidf__min_df': 0.05}
+	-0.676+/-0.000730
+{'tfidf__max_df': 0.7, 'tfidf__min_df': 0.1}
+	-0.693+/-0.000000
+
+cv_best results:{'tfidf__max_df': 1.0, 'tfidf__min_df': 0.01}-0.5920058022615473

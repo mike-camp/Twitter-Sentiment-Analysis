@@ -6,11 +6,13 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 from sklearn.utils import shuffle
 from sklearn.decomposition import NMF
 from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.naive_bayes import MultinomialNB
 
 
 class TweetPredictor(object):
@@ -36,6 +38,10 @@ class TweetPredictor(object):
         self.param_grid = self.create_param_grid(model_type)
 
     def create_pipeline(self, model_type):
+        if model_type=='naive_bayes':
+            tfidf = CountVectorizer(stop_words='english',
+                                    tokenizer=utils.tokenize_and_stem)
+            predictor = MultinomialNB()
         if model_type=='stemmed_lr':
             tfidf = TfidfVectorizer(stop_words='english',
                                     tokenizer=utils.tokenize_and_stem)
@@ -81,14 +87,17 @@ class TweetPredictor(object):
         return pipeline
 
     def create_param_grid(self, model_type):
-        if model_type == 'stemmed_lr' or model_type == 'unstemmed_lr':
-            param_grid = {'tfidf__min_df': [.01, .05, .1],
-                          'tfidf__max_df': [1., .9, .8, .7],
-                          'predictor__C': [2**n for n in range(-3, 3)]}
+        if model_type == 'naive_bayes':
+            param_grid = {'tfidf__min_df': [0.005, .01],
+                          'tfidf__max_df': [.7]}
+        elif model_type == 'stemmed_lr' or model_type == 'unstemmed_lr':
+            param_grid = {'tfidf__min_df': [.005, .01],
+                          'tfidf__max_df': [.7],
+                          'predictor__C': [2**n for n in range(-1, 4, 2)]}
         elif model_type == 'stemmed_rf':
             param_grid = {'tfidf__min_df': [.01, .05, .1],
                           'tfidf__max_df': [1., .9, .8, .7],
-                          'predictor__max_depth': [None, 3, 5, 7]}
+                          'predictor__max_depth': [7]}
         elif model_type == 'stemmed_nmf_lr' or model_type == 'stemmed_lda_lr':
             param_grid = {'feature_reducer__n_components':[100, 200,
                                                            500, 1000],
@@ -96,7 +105,7 @@ class TweetPredictor(object):
         elif model_type == 'stemmed_nmf_rf' or model_type == 'stemmed_lda_rf':
             param_grid = {'feature_reducer__n_components':[100, 200,
                                                            500, 1000],
-                          'predictor__max_depth': [None, 3, 5, 7]}
+                          'predictor__max_depth': [7]}
         return param_grid
 
     def load_data(self, source='kaggle'):
@@ -156,10 +165,9 @@ class TweetPredictor(object):
         for score, std, params in zip(cv_res['mean_test_score'],
                                       cv_res['std_test_score'],
                                       cv_res['params']):
-            results += '\n{:.3f}+/-{:3f} : {} : {} : {}'.format(
-                        score, std, params['predictor__C'],
-                        params['tfidf__min_df'],
-                        params['tfidf__max_df'])
+            results +='\n{}'.format(params)
+            results += '\n\t{:.3f}+/-{:3f}'.format(
+                        score, std)
             print(results.split('\n')[-1])
         results += '\n\ncv_best results:'
         results += '{}'.format(grid_search.best_params_)

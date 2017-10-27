@@ -1,0 +1,27 @@
+           :   C   : min_df  : max_df  
+{'feature_reducer__n_components': 100, 'predictor__C': 0.5}
+	-0.666+/-0.003151
+{'feature_reducer__n_components': 100, 'predictor__C': 2}
+	-0.666+/-0.003314
+{'feature_reducer__n_components': 100, 'predictor__C': 8}
+	-0.666+/-0.003387
+{'feature_reducer__n_components': 200, 'predictor__C': 0.5}
+	-0.692+/-0.000037
+{'feature_reducer__n_components': 200, 'predictor__C': 2}
+	-0.692+/-0.000079
+{'feature_reducer__n_components': 200, 'predictor__C': 8}
+	-0.691+/-0.000090
+{'feature_reducer__n_components': 500, 'predictor__C': 0.5}
+	-0.688+/-0.002943
+{'feature_reducer__n_components': 500, 'predictor__C': 2}
+	-0.685+/-0.002387
+{'feature_reducer__n_components': 500, 'predictor__C': 8}
+	-0.684+/-0.002812
+{'feature_reducer__n_components': 1000, 'predictor__C': 0.5}
+	-0.689+/-0.001266
+{'feature_reducer__n_components': 1000, 'predictor__C': 2}
+	-0.690+/-0.001154
+{'feature_reducer__n_components': 1000, 'predictor__C': 8}
+	-0.686+/-0.002578
+
+cv_best results:{'feature_reducer__n_components': 100, 'predictor__C': 8}-0.6656349009680547
