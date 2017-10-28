@@ -65,6 +65,8 @@ class EmoticonStreamListener(StreamListener):
         json = status._json
         if not 'location' in json['user']:
             return True
+        if not json['user']['location']:
+            return True
         if not self.tweet_processor.find_state(json):
             return True
         self.table.insert_one(status._json)
@@ -204,12 +206,8 @@ def stream_topics(topic_list, topic_name, n_hours=None):
     return table
 
 
-def stream_emoticons(n_hours=None):
-    emoticon_list = [':)', ':(', '☺️','🙂',
-                     '😀', '😃' '☹️', '🙁', '😠']
-    emoticon_list = [x.encode('ascii', 'xmlcharrefreplace') for x in
-                     emoticon_list]
+def stream_emoticons(emoticon_list, n_hours=None):
     table = generate_mongo_table_connection('emoticons')
     twitter_stream = create_emoticon_stream(table, n_hours)
-    twitter_stream.filter(emoticon_list)
+    twitter_stream.filter(track=emoticon_list)
     return table
