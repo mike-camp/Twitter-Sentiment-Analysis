@@ -2,6 +2,7 @@
 """
 import folium
 import geopandas as gpd
+import pandas as pd
 import jinja2
 from src import twitter_scraper
 from src import process_tweets
@@ -48,6 +49,54 @@ def visualize_count(df):
     """
     avg_sentiment = df.sentiment.mean()
     df_grouped = df[['sentiment', 'state']].groupby(['state']).count()
+    gdf = gpd.read_file('data/cb_2016_us_state_20m.dbf')
+    merged_df = gdf.merge(df_grouped, how='left', left_on='NAME',
+                          right_index=True)
+    merged_df = merged_df.fillna(0)
+    data_df = merged_df[['NAME', 'sentiment']].fillna(0)
+    geo_str = merged_df[['NAME', 'geometry']].to_json()
+    map1 = folium.Map(location=[+37, -100],
+                      tiles='Cartodb Positron',
+                      zoom_start=4)
+    map1.choropleth(geo_data=geo_str,
+                    data=data_df,
+                    columns=['NAME', 'sentiment'],
+                    fill_color='YlGn',
+                    legend_name='number of tweets',
+                    name='topic: sentiment = {:.2f}'.format(avg_sentiment),
+                    key_on='feature.properties.NAME')
+    return map1, avg_sentiment
+
+
+def visualize_percent_diff(df):
+    """Creates a visualization of difference in percentage of tweets of a topic
+    across the entire US and returns the mean sentiment felt about the
+    topic across the entire US
+
+    Parameters:
+    -----------
+    df: pd.DataFrame
+        dataframe containing all tweets.  Must contain the columns
+          - state
+          - sentiment
+
+    Returns:
+    --------
+    map: Choropleth map of the US, where the color refers to the total
+         number of tweets
+    avg_sentiment: The average sentiment of a topic
+    """
+    avg_sentiment = df.sentiment.mean()
+    tweet_processor = process_tweets.TweetProcessor('models/stemmed_lr.pk')
+    default_rate = tweet_processor.get_default_rate()
+    df_grouped = df[['sentiment', 'state']].groupby(['state']).count()
+    df_grouped['sentiment'] = 100*df_grouped['sentiment']\
+            /df_grouped['sentiment'].sum()
+    df_grouped = pd.merge(df_grouped, default_rate, how='right',
+                          left_index=True, right_index=True)
+    df_grouped.fillna(0.)
+    df_grouped['sentiment'] = (df_grouped['sentiment'] -
+                               df_grouped['rate'])/df_grouped['rate']
     gdf = gpd.read_file('data/cb_2016_us_state_20m.dbf')
     merged_df = gdf.merge(df_grouped, how='left', left_on='NAME',
                           right_index=True)

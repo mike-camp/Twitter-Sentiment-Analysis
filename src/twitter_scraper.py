@@ -7,6 +7,7 @@ from tweepy.streaming import StreamListener
 from tweepy import Stream
 from pymongo import MongoClient
 from src.process_tweets import TweetProcessor
+from src.mongo import generate_mongo_table_connection
 US_WOEID = 23424977
 
 
@@ -120,26 +121,6 @@ def create_emoticon_stream(table, n_hours=None):
     stream_listener = EmoticonStreamListener(table, n_hours=n_hours)
     twitter_stream = Stream(auth, stream_listener)
     return twitter_stream
-
-
-
-def generate_mongo_table_connection(table_name):
-    """Returns a connection to the twitter
-    mongodb table in the twitter_database
-
-    Parameters:
-    -----------
-    table_name: str
-        name of table to connect to
-
-    Returns:
-    --------
-    pymongo connection to the mongodb table
-    """
-    client = MongoClient('mongodb://{}:{}@localhost:27017'.format(
-        MONGO.USER, MONGO.PASSWORD))
-    database = client['twitter_database']
-    return database[table_name]
 
 
 def generate_table_name():
