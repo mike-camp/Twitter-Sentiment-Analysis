@@ -126,7 +126,7 @@ def create_daily_topic_maps(n_hours):
                                                 for topic in daily_topics]
     jinja_params = {}
     for i, dataframe in enumerate(df_list):
-        map_, avg_sentiment = visualize_count(dataframe)
+        map_, avg_sentiment = visualize_percent_diff(dataframe)
         map_.save('website/maps/daily_topics_{}.html'.format(i+1))
         jinja_params['topic_{}'.format(i+1)] = daily_topics[i]
         jinja_params['topic_score_{}'.format(i+1)] = '{:.2f}'.format(
