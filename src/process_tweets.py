@@ -6,6 +6,7 @@ import pickle
 import os
 import pandas as pd
 from src import model
+from src.mongo import generate_mongo_table_connection
 from src.model import TweetPredictor
 import datetime
 import dateutil
@@ -182,4 +183,22 @@ class TweetProcessor(object):
         time_bin = (max_time - min_time).seconds
         dataframe['time_bin'] = dataframe['date'].map(
             lambda date: int((date - min_time).seconds/time_bin))
+        return dataframe
+
+    def get_default_rate(self):
+        if os.path.exists('data/state_rate.pk'):
+            return pd.read_pickle('data/state_rate.pk')
+        collection = generate_mongo_table_connection(
+            'emoticons')
+        tweets = collection.find({})
+        dataframe = pd.DataFrame([self.process_predict(tweet) for tweet
+                                  in tweets],
+                                 columns=['text', 'state',
+                                          'date', 'sentiment'])
+        dataframe = dataframe[['sentiment', 'state']].groupby(
+            ['state']).count()
+        dataframe['rate'] = 100.*dataframe.sentiment\
+                /dataframe.sentiment.sum()
+        del dataframe['sentiment']
+        dataframe.to_pickle('data/state_rate.pk')
         return dataframe
