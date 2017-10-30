@@ -13,6 +13,7 @@ from sklearn.utils import shuffle
 from sklearn.decomposition import NMF
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.naive_bayes import MultinomialNB
+from src.mongo import generate_mongo_table_connection
 
 
 class TweetPredictor(object):
@@ -108,13 +109,25 @@ class TweetPredictor(object):
                           'predictor__max_depth': [7]}
         return param_grid
 
+    def _is_tweet_pos(self, tweet):
+        if ( ':)' in tweet['text'] or
+              '😃' in  tweet['text']):
+            return True
+        return False
+
+    def _is_tweet_neg(self, tweet):
+        if (':(' in tweet['text'] or
+              '😠' in  tweet['text']):
+            return True
+        return False
+
     def load_data(self, source='kaggle'):
         """Loads the data in, processes it into a standard form
         with sentiment labeled as 0 or 1
 
         Parameters:
         -----------
-        source: str, 'kaggle' or 'emoticon'
+        source: str, 'kaggle', 'emoticon', 'scraped'
             data source to use for training
 
         Returns:
@@ -130,6 +143,15 @@ class TweetPredictor(object):
                 encoding='iso8859', header=None,
                 names=['sentiment', 'id', 'time', 'query', 'user', 'text'])
             df['sentiment'] = df.sentiment/4
+        elif source == 'scraped':
+            table = generate_mongo_table_connection('emoticons')
+            df_list = list()
+            for tweet in table.find():
+                if self._is_tweet_neg(tweet):
+                    df_list.append([tweet['text'], 0])
+                elif self._is_tweet_pos(tweet):
+                    df_list.append([tweet['text'], 1])
+            df = pd.DataFrame(df_list, columns=['text', 'sentiment'])
         elif source == 'kaggle':
             df = pd.read_csv('data/kaggle_labeled_tweets.csv',
                              delimiter='\t', header=None,
@@ -203,6 +225,6 @@ if __name__ == '__main__':
     model = TweetPredictor('stemmed_lr')
     with open('models/untrained_emoticon_lr_model.pk','wb') as f:
         pickle.dump(model,f)
-    model.train(verbose=True, source='emoticon')
+    model.train(source='emoticon')
     with open('models/emoticon_lr_model.pk','wb') as f:
         pickle.dump(model,f)
