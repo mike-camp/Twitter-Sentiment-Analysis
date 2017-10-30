@@ -110,7 +110,7 @@ def visualize_percent_diff(df):
                     data=data_df,
                     columns=['NAME', 'sentiment'],
                     fill_color='YlGn',
-                    legend_name='number of tweets',
+                    legend_name='amount above expected',
                     name='topic: sentiment = {:.2f}'.format(avg_sentiment),
                     key_on='feature.properties.NAME')
     return map1, avg_sentiment
