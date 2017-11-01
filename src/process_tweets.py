@@ -87,7 +87,7 @@ class TweetProcessor(object):
         else:
             tweet_text = tweet['text']
         sentiment = self._model.predict_proba([tweet_text])
-        return sentiment[0][1]
+        return 2*sentiment[0][1]-1
 
     @staticmethod
     def find_date(tweet):
