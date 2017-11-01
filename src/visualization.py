@@ -25,7 +25,7 @@ def visualize_sentiment(df):
                     columns=['NAME', 'sentiment'],
                     fill_color='RdBu',
                     key_on='feature.properties.NAME',
-                    legend_name='sentiment')
+                    legend_name='sentiment score')
     return map1
 
 
@@ -95,8 +95,7 @@ def visualize_percent_diff(df):
     df_grouped = pd.merge(df_grouped, default_rate, how='right',
                           left_index=True, right_index=True)
     df_grouped.fillna(0.)
-    df_grouped['sentiment'] = (df_grouped['sentiment'] -
-                               df_grouped['rate'])/df_grouped['rate']
+    df_grouped['sentiment'] = df_grouped['sentiment']/df_grouped['rate']
     gdf = gpd.read_file('data/cb_2016_us_state_20m.dbf')
     merged_df = gdf.merge(df_grouped, how='left', left_on='NAME',
                           right_index=True)
