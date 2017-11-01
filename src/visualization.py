@@ -3,6 +3,7 @@
 import folium
 import geopandas as gpd
 import pandas as pd
+import numpy as np
 import jinja2
 from src import twitter_scraper
 from src import process_tweets
@@ -102,6 +103,10 @@ def visualize_percent_diff(df):
     merged_df = merged_df.fillna(0)
     data_df = merged_df[['NAME', 'sentiment']].fillna(0)
     geo_str = merged_df[['NAME', 'geometry']].to_json()
+    threshold_scale = np.linspace(min(0, data_df['sentiment'].min()),
+                                  data_df['sentiment'].max(),
+                                  6)
+    threshold_scale = list(threshold_scale)
     map1 = folium.Map(location=[+37, -100],
                       tiles='Cartodb Positron',
                       zoom_start=4)
@@ -111,6 +116,7 @@ def visualize_percent_diff(df):
                     fill_color='YlGn',
                     legend_name='percentage of expected',
                     name='topic: sentiment = {:.2f}'.format(avg_sentiment),
+                    threshold_scale=threshold_scale,
                     key_on='feature.properties.NAME')
     return map1, avg_sentiment
 
