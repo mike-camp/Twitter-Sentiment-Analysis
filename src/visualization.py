@@ -90,12 +90,12 @@ def visualize_percent_diff(df):
     tweet_processor = process_tweets.TweetProcessor('models/stemmed_lr.pk')
     default_rate = tweet_processor.get_default_rate()
     df_grouped = df[['sentiment', 'state']].groupby(['state']).count()
-    df_grouped['sentiment'] = 100*df_grouped['sentiment']\
+    df_grouped['sentiment'] = 100.*df_grouped['sentiment']\
             /df_grouped['sentiment'].sum()
     df_grouped = pd.merge(df_grouped, default_rate, how='right',
                           left_index=True, right_index=True)
     df_grouped.fillna(0.)
-    df_grouped['sentiment'] = df_grouped['sentiment']/df_grouped['rate']
+    df_grouped['sentiment'] = 100*df_grouped['sentiment']/df_grouped['rate']
     gdf = gpd.read_file('data/cb_2016_us_state_20m.dbf')
     merged_df = gdf.merge(df_grouped, how='left', left_on='NAME',
                           right_index=True)
@@ -109,7 +109,7 @@ def visualize_percent_diff(df):
                     data=data_df,
                     columns=['NAME', 'sentiment'],
                     fill_color='YlGn',
-                    legend_name='amount above expected',
+                    legend_name='percentage of expected',
                     name='topic: sentiment = {:.2f}'.format(avg_sentiment),
                     key_on='feature.properties.NAME')
     return map1, avg_sentiment
@@ -137,6 +137,10 @@ def create_daily_topic_maps(n_hours):
     with open('website/index_template.html','r') as f:
         template = jinja2.Template(f.read())
     with open('website/index.html','w') as f:
+        f.write(template.render(**jinja_params))
+    with open('website/sports_template.html','r') as f:
+        template = jinja2.Template(f.read())
+    with open('website/sports.html','w') as f:
         f.write(template.render(**jinja_params))
 
 
