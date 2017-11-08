@@ -4,13 +4,13 @@ Analyzes trending topics by sentiment and location, and provides easy to underst
 ### Synopsis
 This program allows you to analyze either preselected topics, or the latest trends on twitter.  It uses a sentiment analysis algorithm to determine the sentiment relating to a topic in real time, where the tweets are coming from, and how each part of the country feels about a given topic. The results of this are then shown on an interactive map.
 
-[!map of patriots](images/patriots_count.png)
+![map of patriots](images/patriots_count.png)
 
 ### Web Application: twittersentimentanalysis.com
 
 At twittersentimentanalysis.com, you can see analysis of how america felt about the patriots, roll tide, and the latest daily trends on twitter (updated twice daily).
 
-[!website](images/website.png)
+![website](images/website.png)
 
 ### Data Source
 
