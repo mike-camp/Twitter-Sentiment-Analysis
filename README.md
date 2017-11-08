@@ -19,7 +19,7 @@ The training data was taken from [Sanders Analytics](http://www.sananalytics.com
 The data was stored using MongoDB.
 
 
-### Description
+### Respository structure
 
 ```
 ├── src
