@@ -20,12 +20,34 @@ The data was stored using MongoDB.
 
 
 ### Description
-In the src directory there are four modules that help scrape twitter data
-  - utils: text preprocessing, and tokenization module
-  - neural\_networks: a collection of CNN and RNN neural networks for text classification
-  - model: contains TweetPredictor class which predicts sentiment of tweets
-  - twitter\_scraper: functions and classes to help scrape tweets about a topic from using tweepy.
-  - visualization: contains functions that will automatically generate visualizations.   If you want to create the maps, you will only need to use this module.  
+
+```
+├── src
+|   ├── model.py (model for predicting sentiment of tweets)
+|   ├── mongo.py (functions for connecting to mongodb)
+|   ├── neural_networks.py (CNN and RNN models for analyzing tweet sentiment)
+|   ├── process_tweets.py (model for processing tweets and tweet collections by finding sentiment and location)
+|   ├── twitter_scraper.py (functions for finding trends, and scraping tweets by topic)
+|   ├── visualization.py (functions for creating map visualizations of sentiment and count) 
+|   └── utils.py (functions for text preprocessing)
+|
+├── website
+|   ├── *_template.html (templates with daily topics to be filled in via jinja2) 
+|   ├── *.html (html website pages) 
+|   └── maps (leaflet.js maps of sentiment and frequency of tweets)
+|
+├── models
+|   ├── stemmed_lr.pk (pickled src.model.Model class consisting of stemmed_words+tfidf+logistic regression)
+|   ├── unstemmed_lr.pk (pickled src.model.Model class consisting of tfidf+logistic regression)
+|   └── naive_bayes.pk (pickled src.model.Model class consisting of bag of words+naive bayes)
+|
+├── test
+|   ├── process_tweets_unittests.py
+|   ├── twitter_scraper_unittests.py
+|   └── utils_unittests.py
+|
+└── README.md
+```
 
 ### Required Packages
 The required packages can be found in requirements.txt.  They are
