@@ -123,12 +123,12 @@ def visualize_percent_diff(df):
 
 def create_daily_topic_maps(n_hours):
     """Creates three maps for the top trending topics of the day"""
-    table, _, daily_topics = twitter_scraper.stream_trends(n_trends=3,
+    table, _, daily_topics = twitter_scraper.stream_trends(n_trends=5,
                                                            n_hours=n_hours)
     tweet_processor = process_tweets.TweetProcessor(
         'models/stemmed_lr.pk')
     df_list = [tweet_processor.process_database(table, topics=[topic])
-                                                for topic in daily_topics]
+               for topic in daily_topics]
     jinja_params = {}
     for i, dataframe in enumerate(df_list):
         map_, avg_sentiment = visualize_percent_diff(dataframe)
