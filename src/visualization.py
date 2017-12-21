@@ -129,6 +129,7 @@ def create_daily_topic_maps(n_hours):
         'models/stemmed_lr.pk')
     df_list = [tweet_processor.process_database(table, topics=[topic])
                for topic in daily_topics]
+    table.drop()
     jinja_params = {}
     for i, dataframe in enumerate(df_list):
         map_, avg_sentiment = visualize_percent_diff(dataframe)
