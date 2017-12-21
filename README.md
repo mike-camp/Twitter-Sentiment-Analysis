@@ -1,17 +1,53 @@
 ## Twitter Sentiment Analysis
+Analyzes trending topics by sentiment and location, and provides easy to understand visualizations of the results.
 
 ### Synopsis
-An app that analyzes twitter data in real time, filtering by location and topic.  It then runs a sentiment analysis algorithm to determine the sentiment relating to a topic in real time.   The results of this are then shown on an interactive map.  The app can both look at a specific user defined topic, as well as finding trending topics from Twitter.    
+This program allows you to analyze either preselected topics, or the latest trends on twitter.  It uses a sentiment analysis algorithm to determine the sentiment relating to a topic in real time, where the tweets are coming from, and how each part of the country feels about a given topic. The results of this are then shown on an interactive map.
 
-This can allow you to see not only what is trending on Twitter in real time, but also how the country feels about the currently trending topics and how each individual state feels about the current topic.   The app is hosted on a website at twittersentimentanalysis.com, where it is updated daily. 
+![map of patriots](images/patriots_count.png)
 
-### Description
-In the src directory there are four modules that help scrape twitter data
-  - utils: text preprocessing, and tokenization module
-  - neural\_networks: a collection of CNN and RNN neural networks for text classification
-  - model: contains TweetPredictor class which predicts sentiment of tweets
-  - twitter\_scraper: functions and classes to help scrape tweets about a topic from using tweepy.
-  - visualization: contains functions that will automatically generate visualizations.   If you want to create the maps, you will only need to use this module.  
+### Web Application: twittersentimentanalysis.com
+
+At twittersentimentanalysis.com, you can see analysis of how america felt about the patriots, roll tide, and the latest daily trends on twitter (updated twice daily).
+
+![website](images/website.png)
+
+### Data Source
+
+The training data was taken from [Sanders Analytics](http://www.sananalytics.com/lab/twitter-sentiment/) which classified 1.6M tweets by emoticon.   The state gis files were found from the [US Census](http://www2.census.gov/geo/tiger/GENZ2016/shp/cb_2016_us_state_20m.zip).   The actual tweets were scraped using tweepy to access the twitter streaming API.  
+
+The data was stored using MongoDB.
+
+
+### Respository structure
+
+```
+├── src
+|   ├── model.py (model for predicting sentiment of tweets)
+|   ├── mongo.py (functions for connecting to mongodb)
+|   ├── neural_networks.py (CNN and RNN models for analyzing tweet sentiment)
+|   ├── process_tweets.py (model for processing tweets and tweet collections by finding sentiment and location)
+|   ├── twitter_scraper.py (functions for finding trends, and scraping tweets by topic)
+|   ├── visualization.py (functions for creating map visualizations of sentiment and count) 
+|   └── utils.py (functions for text preprocessing)
+|
+├── website
+|   ├── *_template.html (templates with daily topics to be filled in via jinja2) 
+|   ├── *.html (html website pages) 
+|   └── maps (leaflet.js maps of sentiment and frequency of tweets)
+|
+├── models
+|   ├── stemmed_lr.pk (pickled src.model.Model class consisting of stemmed_words+tfidf+logistic regression)
+|   ├── unstemmed_lr.pk (pickled src.model.Model class consisting of tfidf+logistic regression)
+|   └── naive_bayes.pk (pickled src.model.Model class consisting of bag of words+naive bayes)
+|
+├── test
+|   ├── process_tweets_unittests.py
+|   ├── twitter_scraper_unittests.py
+|   └── utils_unittests.py
+|
+└── README.md
+```
 
 ### Required Packages
 The required packages can be found in requirements.txt.  They are
